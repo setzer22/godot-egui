@@ -1,0 +1,5 @@
+[workspace]
+members = [
+    "godot_egui",
+    "example_project"
+]
