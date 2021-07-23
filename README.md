@@ -1,5 +1,9 @@
 # Godot Egui
 
+[![Latest version](https://img.shields.io/crates/v/godot_egui.svg)](https://crates.io/crates/godot_egui)
+[![Documentation](https://docs.rs/godot_egui/badge.svg)](https://docs.rs/godot_egui)
+![MIT](https://img.shields.io/badge/license-MIT-blue.svg)
+
 An [egui](https://github.com/emilk/egui) backend for [godot-rust](https://github.com/godot-rust/godot-rust).
 
 ![Animated gif showcasing godot-egui](./resources/showcase.gif)
@@ -24,7 +28,7 @@ _Cargo.toml_
 ```toml
 [dependencies]
 # ...
-godot_egui = { path = "path/to/this/repo/" } # You can also use git, or eventually crates.io
+godot_egui = "0.1.1"
 ```
 
 Next, register the custom Godot classes declared in `godot_egui`:
