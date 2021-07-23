@@ -256,7 +256,7 @@ impl GodotEgui {
     /// `update_ctx` if the `CentralPanel` is going to be used for convenience. Accepts an optional
     /// `egui::Frame` to draw the panel background
     pub fn update(
-        &mut self, owner: TRef<Control>, draw_fn: impl FnOnce(&mut egui::Ui) -> (), frame: Option<egui::Frame>,
+        &mut self, owner: TRef<Control>, frame: Option<egui::Frame>, draw_fn: impl FnOnce(&mut egui::Ui) -> (), 
     ) {
         self.update_ctx(owner, |egui_ctx| {
             // Run user code
@@ -269,4 +269,8 @@ impl GodotEgui {
                 .show(egui_ctx, draw_fn);
         })
     }
+}
+
+pub fn register_classes(handle: InitHandle) {
+    handle.add_class::<GodotEgui>();
 }
