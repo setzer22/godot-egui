@@ -6,6 +6,7 @@ repository = "https://github.com/setzer22/godot-egui"
 license = "MIT"
 version = "0.1.0"
 authors = ["Setzer22"]
+keywords = ["gamedev", "gui"]
 edition = "2018"
 workspace = ".."
 
