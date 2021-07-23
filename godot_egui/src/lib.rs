@@ -14,7 +14,7 @@ pub mod egui_helpers;
 /// Converts an egui color into a godot color
 pub fn egui2color(c: egui::Color32) -> Color {
     let as_f32 = |x| x as f32 / u8::MAX as f32;
-    Color::rgba(as_f32(c.r()), as_f32(c.g()), as_f32(c.b()), as_f32(c.a()))
+    Color::from_rgba(as_f32(c.r()), as_f32(c.g()), as_f32(c.b()), as_f32(c.a()))
 }
 
 /// Converts an egui color into a godot color
@@ -81,7 +81,7 @@ impl GodotEgui {
         // Transforms mouse positions in viewport coordinates to egui coordinates.
         // NOTE: The egui is painted inside a control node, so its global rect offset must be taken into account
         let mouse_pos_to_egui = |mouse_pos: Vector2| {
-            let transformed_pos = mouse_pos - owner.get_global_rect().origin.to_vector();
+            let transformed_pos = mouse_pos - owner.get_global_rect().position;
             egui::Pos2 { x: transformed_pos.x, y: transformed_pos.y }
         };
 
@@ -198,8 +198,8 @@ impl GodotEgui {
             };
 
             vs.canvas_item_set_custom_rect(vs_mesh.canvas_item, true, Rect2 {
-                origin: Point2::new(clip_rect.min.x, clip_rect.min.y),
-                size: Size2::new(clip_rect.max.x - clip_rect.min.x, clip_rect.max.y - clip_rect.min.y),
+                position: Vector2::new(clip_rect.min.x, clip_rect.min.y),
+                size: Vector2::new(clip_rect.max.x - clip_rect.min.x, clip_rect.max.y - clip_rect.min.y),
             });
 
             // Safety: Transmuting from Vec<u32> to Vec<i32> should be safe as long as indices don't overflow.
@@ -240,7 +240,7 @@ impl GodotEgui {
         let mut raw_input = self.raw_input.take();
         let size = owner.get_rect().size;
         raw_input.screen_rect =
-            Some(egui::Rect::from_min_size(Default::default(), egui::Vec2::new(size.width, size.height)));
+            Some(egui::Rect::from_min_size(Default::default(), egui::Vec2::new(size.x, size.y)));
 
         self.egui_ctx.begin_frame(raw_input);
 
