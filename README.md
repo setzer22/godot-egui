@@ -4,6 +4,16 @@ An [egui](https://github.com/emilk/egui) backend for [godot-rust](https://github
 
 ![Animated gif showcasing godot-egui](./resources/showcase.gif)
 
+## Rationale
+
+Godot has a perfectly valid GUI system, so why `egui`? Here are my personal reasons:
+
+- Simplicity: No need to connect signals or manage complex scene graphs with dozens of tiny inter-related scripts. GUI logic is centralized. Everything is always up-to-date.
+- Better defaults: It currently takes a lot of effort to create a visually consistent UI theme for Godot (margins, font sizes, colors...). In contrast, `egui`'s widgets only rely on a small set of themable properties.
+- Customizability: Creating new widgets with `egui` is [far more simple](https://github.com/emilk/egui/blob/master/egui_demo_lib/src/apps/demo/toggle_switch.rs). 
+- Data driven: The immediate-mode paradigm fits a data-driven style of development: Your data is the source of truth, and the GUI is derived from it by navigating and updating the data itself.
+- IDE Support: Rust has excellent IDE support. Static typing helps you ensure your data model and their associated GUIs always stay in sync.
+
 ## Usage
 
 These are minimal usage instructions. See the example project in `./example_project/` for a more advanced project.
