@@ -1,5 +1,9 @@
 [package]
 name = "godot_egui"
+description = "Egui backend for the Godot Engine"
+homepage = "https://github.com/setzer22/godot-egui"
+repository = "https://github.com/setzer22/godot-egui"
+license = "MIT"
 version = "0.1.0"
 authors = ["Setzer22"]
 edition = "2018"
