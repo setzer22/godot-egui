@@ -8,6 +8,7 @@ version = "0.1.0"
 authors = ["Setzer22"]
 keywords = ["gamedev", "gui"]
 edition = "2018"
+readme = "../README.md"
 workspace = ".."
 
 [dependencies]
