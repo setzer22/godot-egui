@@ -77,6 +77,20 @@ Should be as simple as:
 2. Open `./example_project/ with the Godot Editor
 3. Hit play
 
+## Custom Fonts
+
+Egui supports setting custom fonts out of the box: 
+
+- https://docs.rs/egui/0.13.1/egui/struct.FontDefinitions.html
+- https://docs.rs/egui/0.13.1/egui/struct.Context.html#method.set_fonts
+
+Additionally, godot-egui supports registering custom fonts by directly from the Godot editor by exposing several script properties.
+![Panel showcasing custom fonts](./resources/custom_fonts.png)
+
+The fonts will be loaded into the `egui::FontFamily::Proportional` family in order. If you don't want egui's default fonts, the `override_default_fonts` boolean can be set so that only Custom fonts get loaded.
+
+
+
 ## Maturity
 
 The project is in a very early release stage. Breaking changes may occur, but only when absolutely necessary. 
