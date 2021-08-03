@@ -1,5 +1,9 @@
 # Godot Egui
 
+[![Latest version](https://img.shields.io/crates/v/godot_egui.svg)](https://crates.io/crates/godot_egui)
+[![Documentation](https://docs.rs/godot_egui/badge.svg)](https://docs.rs/godot_egui)
+![MIT](https://img.shields.io/badge/license-MIT-blue.svg)
+
 An [egui](https://github.com/emilk/egui) backend for [godot-rust](https://github.com/godot-rust/godot-rust).
 
 ![Animated gif showcasing godot-egui](./resources/showcase.gif)
@@ -24,7 +28,7 @@ _Cargo.toml_
 ```toml
 [dependencies]
 # ...
-godot_egui = { path = "path/to/this/repo/" } # You can also use git, or eventually crates.io
+godot_egui = "0.1.1"
 ```
 
 Next, register the custom Godot classes declared in `godot_egui`:
@@ -72,6 +76,20 @@ Should be as simple as:
 1. Run `cargo build`
 2. Open `./example_project/ with the Godot Editor
 3. Hit play
+
+## Custom Fonts
+
+Egui supports setting custom fonts out of the box: 
+
+- https://docs.rs/egui/0.13.1/egui/struct.FontDefinitions.html
+- https://docs.rs/egui/0.13.1/egui/struct.Context.html#method.set_fonts
+
+Additionally, godot-egui supports registering custom fonts by directly from the Godot editor by exposing several script properties.
+![Panel showcasing custom fonts](./resources/custom_fonts.png)
+
+The fonts will be loaded into the `egui::FontFamily::Proportional` family in order. If you don't want egui's default fonts, the `override_default_fonts` boolean can be set so that only Custom fonts get loaded.
+
+
 
 ## Maturity
 
