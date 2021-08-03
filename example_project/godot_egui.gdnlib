@@ -9,7 +9,7 @@ reloadable=true
 
 X11.64="res://../target/debug/libgodot_egui_example.so"
 OSX.64="res://../target/debug/libgodot_egui_example.dylib"
-Windows.64="res://../target/debug/libgodot_egui_example.dll"
+Windows.64="res://../target/debug/godot_egui_example.dll"
 
 [dependencies]
 
