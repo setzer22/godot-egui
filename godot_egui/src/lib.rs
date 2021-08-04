@@ -252,11 +252,13 @@ impl GodotEgui {
             "At this point, the number of canvas items should be the same as the number of egui meshes."
         );
 
+
         // Paint the meshes
         for (egui::ClippedMesh(clip_rect, mesh), vs_mesh) in clipped_meshes.into_iter().zip(self.meshes.iter_mut())
         {
-            // Skip the mesh if empty
+            // Skip the mesh if empty, but clear the mesh if it previously existed
             if mesh.vertices.len() == 0 {
+                vs.canvas_item_clear(vs_mesh.canvas_item);
                 continue;
             }
 
