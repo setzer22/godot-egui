@@ -59,6 +59,7 @@ pub struct GodotEgui {
     meshes: Vec<VisualServerMesh>,
     main_texture: SyncedTexture,
     raw_input: Rc<RefCell<egui::RawInput>>,
+    mouse_was_captured: bool,
 
     /// If set to true, egui's default fonts will be ignored. You can set `custom_fonts` instead.
     #[property]
@@ -93,6 +94,7 @@ impl GodotEgui {
                 godot_texture: ImageTexture::new().into_shared(),
             },
             raw_input: Rc::new(RefCell::new(egui::RawInput::default())),
+            mouse_was_captured: false,
             override_default_fonts: false,
             custom_fonts: [None, None, None, None, None],
         }
@@ -140,6 +142,12 @@ impl GodotEgui {
         self.egui_ctx.set_fonts(font_defs);
     }
 
+    fn maybe_set_mouse_input_as_handled(&self, owner: TRef<Control>) {
+        if self.mouse_was_captured {
+            unsafe { owner.get_viewport().expect("Viewport").assume_safe().set_input_as_handled() }
+        }
+    }
+
     /// Callback to listen for input. Translates input back to egui events.
     #[export]
     fn _input(&mut self, owner: TRef<Control>, event: Ref<InputEvent>) {
@@ -154,10 +162,12 @@ impl GodotEgui {
         };
 
         if let Some(motion_ev) = event.cast::<InputEventMouseMotion>() {
+            self.maybe_set_mouse_input_as_handled(owner);
             raw_input.events.push(egui::Event::PointerMoved(mouse_pos_to_egui(motion_ev.position())))
         }
 
         if let Some(button_ev) = event.cast::<InputEventMouseButton>() {
+            self.maybe_set_mouse_input_as_handled(owner);
             if let Some(button) = enum_conversions::mouse_button_index_to_egui(button_ev.button_index()) {
                 raw_input.events.push(egui::Event::PointerButton {
                     pos: mouse_pos_to_egui(button_ev.position()),
@@ -318,6 +328,12 @@ impl GodotEgui {
 
         // Render GUI
         let (_output, shapes) = self.egui_ctx.end_frame();
+
+        // Each frame, we set the mouse_was_captured flag so that we know whether egui should be
+        // consuming mouse events or not. This may introduce a one-frame lag in capturing input, but in practice it
+        // shouldn't be an issue.
+        self.mouse_was_captured = self.egui_ctx.is_using_pointer();
+
         let clipped_meshes = self.egui_ctx.tessellate(shapes);
         self.paint_shapes(owner, clipped_meshes, &self.egui_ctx.texture());
     }
@@ -339,6 +355,8 @@ impl GodotEgui {
                 .show(egui_ctx, draw_fn);
         })
     }
+
+    pub fn mouse_was_captured(&self) -> bool { self.mouse_was_captured }
 }
 
 pub fn register_classes(handle: InitHandle) { handle.add_class::<GodotEgui>(); }
