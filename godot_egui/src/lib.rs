@@ -67,7 +67,7 @@ pub struct GodotEgui {
     custom_fonts: [Option<String>; 5],
 }
 
-pub fn register_properties(builder: &ClassBuilder<GodotEgui>) {
+fn register_properties(builder: &ClassBuilder<GodotEgui>) {
     for i in 0..5 {
         builder
             .add_property::<String>(&format!("custom_font_{}", i + 1))
