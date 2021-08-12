@@ -18,6 +18,7 @@ script = ExtResource( 1 )
 __meta__ = {
 "_edit_use_anchors_": false
 }
+scroll_speed = 20.0
 override_default_fonts = false
 custom_font_1 = "res://fonts/fontawesome/Font Awesome 5 Free-Solid-900.otf"
 custom_font_2 = "res://fonts/bubblegum_sans/BubblegumSans-Regular.otf"
