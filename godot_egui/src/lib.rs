@@ -66,6 +66,10 @@ pub struct GodotEgui {
     override_default_fonts: bool,
     /// Custom font paths. If set, they will get loaded into egui during _ready
     custom_fonts: [Option<String>; 5],
+
+    /// The amount of scrolled pixels per mouse wheel event
+    #[property]
+    scroll_speed: f32,
 }
 
 fn register_properties(builder: &ClassBuilder<GodotEgui>) {
@@ -97,6 +101,7 @@ impl GodotEgui {
             mouse_was_captured: false,
             override_default_fonts: false,
             custom_fonts: [None, None, None, None, None],
+            scroll_speed: 20.0,
         }
     }
 
@@ -179,8 +184,8 @@ impl GodotEgui {
 
             if button_ev.is_pressed() {
                 match button_ev.button_index() {
-                    GlobalConstants::BUTTON_WHEEL_UP => raw_input.scroll_delta = egui::Vec2::new(0.0, 1.0),
-                    GlobalConstants::BUTTON_WHEEL_DOWN => raw_input.scroll_delta = egui::Vec2::new(0.0, -1.0),
+                    GlobalConstants::BUTTON_WHEEL_UP => raw_input.scroll_delta = egui::Vec2::new(0.0, 1.0) * self.scroll_speed,
+                    GlobalConstants::BUTTON_WHEEL_DOWN => raw_input.scroll_delta = egui::Vec2::new(0.0, -1.0) * self.scroll_speed,
                     _ => {}
                 }
             }
