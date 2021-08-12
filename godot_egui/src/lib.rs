@@ -282,11 +282,6 @@ impl GodotEgui {
                 egui::TextureId::User(id) => u64_to_rid(id),
             };
 
-            vs.canvas_item_set_custom_rect(vs_mesh.canvas_item, true, Rect2 {
-                origin: Point2::new(clip_rect.min.x, clip_rect.min.y),
-                size: Size2::new(clip_rect.max.x - clip_rect.min.x, clip_rect.max.y - clip_rect.min.y),
-            });
-
             // Safety: Transmuting from Vec<u32> to Vec<i32> should be safe as long as indices don't overflow.
             // If the index array overflows we will just get an OOB and crash which is fine.
             let indices = Int32Array::from_vec(unsafe { std::mem::transmute::<_, Vec<i32>>(mesh.indices) });
@@ -315,7 +310,14 @@ impl GodotEgui {
                 Rid::new(),
                 false,
                 false,
-            )
+            );
+
+            vs.canvas_item_set_clip(vs_mesh.canvas_item, true);
+            vs.canvas_item_set_custom_rect(vs_mesh.canvas_item, true, Rect2 {
+                origin: Point2::new(clip_rect.min.x, clip_rect.min.y),
+                size: Size2::new(clip_rect.max.x - clip_rect.min.x, clip_rect.max.y - clip_rect.min.y),
+            });
+
         }
     }
 
