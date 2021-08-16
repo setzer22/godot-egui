@@ -70,6 +70,10 @@ pub struct GodotEgui {
     /// The amount of scrolled pixels per mouse wheel event
     #[property]
     scroll_speed: f32,
+
+    /// Whether or not this egui should call set_input_as_handled after receiving a mouse event.
+    #[property]
+    consume_mouse_events: bool,
 }
 
 fn register_properties(builder: &ClassBuilder<GodotEgui>) {
@@ -102,6 +106,7 @@ impl GodotEgui {
             override_default_fonts: false,
             custom_fonts: [None, None, None, None, None],
             scroll_speed: 20.0,
+            consume_mouse_events: true,
         }
     }
 
@@ -148,7 +153,7 @@ impl GodotEgui {
     }
 
     fn maybe_set_mouse_input_as_handled(&self, owner: TRef<Control>) {
-        if self.mouse_was_captured {
+        if self.mouse_was_captured && self.consume_mouse_events {
             unsafe { owner.get_viewport().expect("Viewport").assume_safe().set_input_as_handled() }
         }
     }
