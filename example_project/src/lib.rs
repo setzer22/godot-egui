@@ -16,6 +16,7 @@ pub struct GodotEguiExample {
     icon_1: Ref<Texture>,
     icon_2: Ref<Texture>,
     use_custom_fonts: bool,
+    show_font_settings: bool,
 }
 
 #[gdnative::methods]
@@ -29,6 +30,7 @@ impl GodotEguiExample {
             icon_1: load_texture("res://icon.png"),
             icon_2: load_texture("res://icon_ferris.png"),
             use_custom_fonts: false,
+            show_font_settings: false,
         }
     }
 
@@ -72,86 +74,105 @@ impl GodotEguiExample {
         gui.map_mut(|gui, instance| {
             // We use the `update` method here to just draw a simple UI on the central panel. If you need more
             // fine-grained control, you can use update_ctx to get access to egui's context directly.
-            gui.update(instance, Some(frame), |ui| {
-                ui.columns(2, |columns| {
-                    let ui = &mut columns[0];
+            gui.update_ctx(instance, /* Some(frame), */ |ctx| {
+                egui::CentralPanel::default().frame(frame).show(ctx, |ui| {
+                    ui.columns(2, |columns| {
+                        let ui = &mut columns[0];
 
-                    ui.heading("Godot Egui - Example app");
+                        ui.heading("Godot Egui - Example app");
 
-                    ui.add_space(5.0);
+                        ui.add_space(5.0);
 
-                    if ui.button("Press me to increase counter!").clicked() {
-                        self.counter += 1;
-                    }
-                    ui.label(format!("Count is: {}", self.counter));
-
-                    ui.add_space(5.0);
-
-                    ui.horizontal(|ui| {
-                        ui.checkbox(&mut self.checkbox, "Is the following string awesome?");
-                        if self.checkbox {
-                            ui.label("It is!");
-                        } else {
-                            ui.label("Unfortunately, it is not.");
+                        if ui.button("Press me to increase counter!").clicked() {
+                            self.counter += 1;
                         }
-                    });
+                        ui.label(format!("Count is: {}", self.counter));
 
-                    ui.add_space(5.0);
+                        ui.add_space(5.0);
 
-                    ui.heading("You can even plot graphs");
-                    ui.add_space(5.0);
+                        ui.horizontal(|ui| {
+                            ui.checkbox(&mut self.checkbox, "Is the following string awesome?");
+                            if self.checkbox {
+                                ui.label("It is!");
+                            } else {
+                                ui.label("Unfortunately, it is not.");
+                            }
+                        });
 
-                    let plot = egui::plot::Plot::new("plot_example")
-                        .line(self.sin_plot())
-                        .width(400.0)
-                        .view_aspect(4.0 / 3.0);
-                    ui.add(plot);
+                        ui.add_space(5.0);
 
-                    ui.heading("Or use your custom images");
-                    ui.add_space(5.0);
+                        ui.heading("You can even plot graphs");
+                        ui.add_space(5.0);
 
-                    // Custom textures are passed in using their `rid`. Make sure the texture resources don't get
-                    // deallocated for as long as egui will be using them.
-                    let icon_1 = unsafe { self.icon_1.assume_safe() }.get_rid();
-                    let icon_2 = unsafe { self.icon_2.assume_safe() }.get_rid();
+                        let plot = egui::plot::Plot::new("plot_example")
+                            .line(self.sin_plot())
+                            .width(400.0)
+                            .view_aspect(4.0 / 3.0);
+                        ui.add(plot);
 
-                    ui.horizontal(|ui| {
-                        // The `rid_to_egui_texture_id` function can be used to convert an rid to an
-                        // egui::TextureId
-                        for _ in 0..3 {
-                            ui.image(godot_egui::rid_to_egui_texture_id(icon_1), egui::vec2(64.0, 64.0));
-                            ui.image(godot_egui::rid_to_egui_texture_id(icon_2), egui::vec2(64.0, 64.0));
-                        }
-                    });
+                        ui.heading("Or use your custom images");
+                        ui.add_space(5.0);
 
-                    let ui = &mut columns[1];
+                        // Custom textures are passed in using their `rid`. Make sure the texture resources don't
+                        // get deallocated for as long as egui will be using them.
+                        let icon_1 = unsafe { self.icon_1.assume_safe() }.get_rid();
+                        let icon_2 = unsafe { self.icon_2.assume_safe() }.get_rid();
 
-                    ui.heading("You can use custom fonts");
-                    ui.label(
-                        "This example registers two custom fonts. Custom fonts can be registered from the Godot \
-                         Editor by setting font paths. For more control, you can also use egui::CtxRef's \
-                         set_fonts method to register fonts manually.
+                        ui.horizontal(|ui| {
+                            // The `rid_to_egui_texture_id` function can be used to convert an rid to an
+                            // egui::TextureId
+                            for _ in 0..3 {
+                                ui.image(godot_egui::rid_to_egui_texture_id(icon_1), egui::vec2(64.0, 64.0));
+                                ui.image(godot_egui::rid_to_egui_texture_id(icon_2), egui::vec2(64.0, 64.0));
+                            }
+                        });
+
+                        let ui = &mut columns[1];
+
+                        ui.heading("You can use custom fonts");
+                        ui.label(
+                            "This example registers two custom fonts. Custom fonts can be registered from the \
+                             Godot Editor by setting font paths. For more control, you can also use \
+                             egui::CtxRef's set_fonts method to register fonts manually.
                          \nEgui does not currently support locally overriding a font, but you can switch the \
-                         global font priorities for an egui::CtxRef so that different fonts take precedence. The \
-                         checkbox below will reverse the vector of fonts so that the last one, our Custom Font \
-                         2, becomes the main font.",
-                    );
-                    if ui.checkbox(&mut self.use_custom_fonts, "Reverse font priorities").clicked() {
-                        should_reverse_font_priorities = true;
-                    }
+                             global font priorities for an egui::CtxRef so that different fonts take precedence. \
+                             The checkbox below will reverse the vector of fonts so that the last one, our \
+                             Custom Font 2, becomes the main font.",
+                        );
+                        if ui.checkbox(&mut self.use_custom_fonts, "Reverse font priorities").clicked() {
+                            should_reverse_font_priorities = true;
+                        }
 
-                    ui.add_space(5.0);
+                        ui.add_space(5.0);
 
-                    ui.heading("Icon fonts  \u{f02d}");
-                    ui.add_space(5.0);
-                    ui.label(
-                        "By loading icon fonts, such as Fontawesome, you can easily draw small icons. Icon fonts \
-                         typically use private codepoints, so there's no need to worry about priorities:\n\n \
-                         \u{f091} \u{f0f3} \u{f241} \u{f0e7} \u{f0fc}",
-                    );
+                        ui.heading("Icon fonts  \u{f02d}");
+                        ui.add_space(5.0);
+                        ui.label(
+                            "By loading icon fonts, such as Fontawesome, you can easily draw small icons. Icon \
+                             fonts typically use private codepoints, so there's no need to worry about \
+                             priorities:\n\n \u{f091} \u{f0f3} \u{f241} \u{f0e7} \u{f0fc}",
+                        );
 
-                    ui.add_space(5.0);
+                        ui.add_space(5.0);
+
+                        ui.horizontal(|ui| {
+                            ui.label("You can also configure font settings, check it out:");
+                            if ui.button("Font settings").clicked() {
+                                self.show_font_settings = true;
+                            }
+                        });
+                    });
                 });
+
+                if self.show_font_settings {
+                    let mut font_definitions = ctx.fonts().definitions().clone();
+                    egui::Window::new("Settings").open(&mut self.show_font_settings).show(ctx, |ui| {
+                        use egui::Widget;
+                        font_definitions.ui(ui);
+                        ui.fonts().texture().ui(ui);
+                    });
+                    ctx.set_fonts(font_definitions);
+                }
             });
 
             if should_reverse_font_priorities {

@@ -74,6 +74,10 @@ pub struct GodotEgui {
     /// Whether or not this egui should call set_input_as_handled after receiving a mouse event.
     #[property]
     consume_mouse_events: bool,
+
+    /// When enabled, no texture filtering will be performed. Useful for a pixel-art style.
+    #[property]
+    disable_texture_filtering: bool,
 }
 
 fn register_properties(builder: &ClassBuilder<GodotEgui>) {
@@ -107,6 +111,7 @@ impl GodotEgui {
             custom_fonts: [None, None, None, None, None],
             scroll_speed: 20.0,
             consume_mouse_events: true,
+            disable_texture_filtering: false,
         }
     }
 
@@ -189,8 +194,12 @@ impl GodotEgui {
 
             if button_ev.is_pressed() {
                 match button_ev.button_index() {
-                    GlobalConstants::BUTTON_WHEEL_UP => raw_input.scroll_delta = egui::Vec2::new(0.0, 1.0) * self.scroll_speed,
-                    GlobalConstants::BUTTON_WHEEL_DOWN => raw_input.scroll_delta = egui::Vec2::new(0.0, -1.0) * self.scroll_speed,
+                    GlobalConstants::BUTTON_WHEEL_UP => {
+                        raw_input.scroll_delta = egui::Vec2::new(0.0, 1.0) * self.scroll_speed
+                    }
+                    GlobalConstants::BUTTON_WHEEL_DOWN => {
+                        raw_input.scroll_delta = egui::Vec2::new(0.0, -1.0) * self.scroll_speed
+                    }
                     _ => {}
                 }
             }
@@ -243,7 +252,9 @@ impl GodotEgui {
             // This is because the egui texture has a full white pixel at (0,0), which is used by many opaque
             // shapes. When using the default flags, blending + wrapping end up lowering the alpha of
             // the pixel at (0,0)
-            new_tex.create_from_image(image, Texture::FLAG_FILTER | Texture::FLAG_MIPMAPS);
+            let flags =
+                if self.disable_texture_filtering { 0 } else { Texture::FLAG_FILTER | Texture::FLAG_MIPMAPS };
+            new_tex.create_from_image(image, flags);
             self.main_texture.godot_texture = new_tex.into_shared();
         }
 
@@ -322,7 +333,6 @@ impl GodotEgui {
                 origin: Point2::new(clip_rect.min.x, clip_rect.min.y),
                 size: Size2::new(clip_rect.max.x - clip_rect.min.x, clip_rect.max.y - clip_rect.min.y),
             });
-
         }
     }
 
