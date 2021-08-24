@@ -28,6 +28,7 @@ _Cargo.toml_
 ```toml
 [dependencies]
 # ...
+egui = "0.13"
 godot_egui = "0.1.1"
 ```
 
