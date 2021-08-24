@@ -20,7 +20,7 @@ pub fn egui2color(c: egui::Color32) -> Color {
     Color::rgba(as_f32(c.r()), as_f32(c.g()), as_f32(c.b()), as_f32(c.a()))
 }
 
-/// Converts an egui color into a godot color
+/// Converts a godot color into an egui color
 pub fn color2egui(c: Color) -> egui::Color32 {
     let as_u8 = |x| (x * (u8::MAX as f32)) as u8;
     egui::Color32::from_rgba_premultiplied(as_u8(c.r), as_u8(c.g), as_u8(c.b), as_u8(c.a))
