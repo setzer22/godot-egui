@@ -6,6 +6,8 @@
 [node name="GodotEguiExample" type="Control"]
 anchor_right = 1.0
 anchor_bottom = 1.0
+size_flags_horizontal = 3
+size_flags_vertical = 3
 script = ExtResource( 2 )
 __meta__ = {
 "_edit_use_anchors_": false
@@ -19,6 +21,8 @@ __meta__ = {
 "_edit_use_anchors_": false
 }
 scroll_speed = 20.0
+consume_mouse_events = true
 override_default_fonts = false
+disable_texture_filtering = false
 custom_font_1 = "res://fonts/fontawesome/Font Awesome 5 Free-Solid-900.otf"
 custom_font_2 = "res://fonts/bubblegum_sans/BubblegumSans-Regular.otf"

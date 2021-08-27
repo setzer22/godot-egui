@@ -381,4 +381,13 @@ impl GodotEgui {
     pub fn mouse_was_captured(&self) -> bool { self.mouse_was_captured }
 }
 
+/// Helper method that registers all GodotEgui `NativeClass` objects as scripts.
+/// ## Note
+/// This method should not be used in any library where `register_classes_as_tool` is run. Doing so may result in `gdnative` errors.
 pub fn register_classes(handle: InitHandle) { handle.add_class::<GodotEgui>(); }
+
+/// Helper method that registers all GodotEgui `NativeClass` objects as tool scripts. This should **only** be used when GodotEgui is to be run inside the Godot editor.
+/// ## Note
+/// This method should not be used in any library where `register_classes` is run. Doing so may result in `gdnative` errors. 
+pub fn register_classes_as_tool(handle: InitHandle) { handle.add_tool_class::<GodotEgui>(); }
+
