@@ -84,9 +84,7 @@ fn register_properties(builder: &ClassBuilder<GodotEgui>) {
     for i in 0..5 {
         builder
             .add_property::<String>(&format!("custom_font_{}", i + 1))
-            .with_getter(move |x: &GodotEgui, _| {
-                x.custom_fonts[i].as_ref().map(|x| x.clone()).unwrap_or("".to_owned())
-            })
+            .with_getter(move |x: &GodotEgui, _| x.custom_fonts[i].as_ref().cloned().unwrap_or_default())
             .with_setter(move |x: &mut GodotEgui, _, new_val| x.custom_fonts[i] = Some(new_val))
             .with_default("".to_owned())
             .with_hint(StringHint::File(EnumHint::new(vec!["*.ttf".to_owned(), "*.otf".to_owned()])))
@@ -133,7 +131,7 @@ impl GodotEgui {
         for font_path in self
             .custom_fonts
             .iter()
-            .filter(|x| x.as_ref().map(|x| x.len() > 0).unwrap_or(false))
+            .filter(|x| x.as_ref().map(|x| x.is_empty()).unwrap_or(false))
             .map(|x| x.as_ref().unwrap())
         {
             let font_file = gdnative::api::File::new();
@@ -141,7 +139,7 @@ impl GodotEgui {
                 Ok(_) => {
                     let file_data = font_file.get_buffer(font_file.get_len());
                     let file_data = std::borrow::Cow::Owned(file_data.read().as_slice().to_owned());
-                    font_defs.font_data.insert(font_path.to_owned(), std::borrow::Cow::from(file_data));
+                    font_defs.font_data.insert(font_path.to_owned(), file_data);
                     font_defs
                         .fonts_for_family
                         .get_mut(&egui::FontFamily::Proportional)
@@ -208,10 +206,12 @@ impl GodotEgui {
         if let Some(key_ev) = event.cast::<InputEventKey>() {
             if let Some(key) = enum_conversions::scancode_to_egui(key_ev.scancode()) {
                 let mods = key_ev.get_scancode_with_modifiers();
-                let mut modifiers = egui::Modifiers::default();
-                modifiers.ctrl = (mods | GlobalConstants::KEY_MASK_CTRL) != 0;
-                modifiers.shift = (mods | GlobalConstants::KEY_MASK_SHIFT) != 0;
-                modifiers.alt = (mods | GlobalConstants::KEY_ALT) != 0;
+                let modifiers = egui::Modifiers {
+                    ctrl: (mods & GlobalConstants::KEY_MASK_CTRL) == 0,
+                    shift: (mods & GlobalConstants::KEY_MASK_SHIFT) == 0,
+                    alt: (mods & GlobalConstants::KEY_ALT) == 0,
+                    ..Default::default()
+                };
 
                 raw_input.events.push(egui::Event::Key { key, pressed: key_ev.is_pressed(), modifiers })
             }
@@ -283,12 +283,11 @@ impl GodotEgui {
             "At this point, the number of canvas items should be the same as the number of egui meshes."
         );
 
-
         // Paint the meshes
         for (egui::ClippedMesh(clip_rect, mesh), vs_mesh) in clipped_meshes.into_iter().zip(self.meshes.iter_mut())
         {
             // Skip the mesh if empty, but clear the mesh if it previously existed
-            if mesh.vertices.len() == 0 {
+            if mesh.vertices.is_empty() {
                 vs.canvas_item_clear(vs_mesh.canvas_item);
                 continue;
             }
@@ -300,6 +299,7 @@ impl GodotEgui {
 
             // Safety: Transmuting from Vec<u32> to Vec<i32> should be safe as long as indices don't overflow.
             // If the index array overflows we will just get an OOB and crash which is fine.
+            #[allow(clippy::unsound_collection_transmute)]
             let indices = Int32Array::from_vec(unsafe { std::mem::transmute::<_, Vec<i32>>(mesh.indices) });
             let vertices = mesh
                 .vertices
@@ -329,15 +329,19 @@ impl GodotEgui {
             );
 
             vs.canvas_item_set_clip(vs_mesh.canvas_item, true);
-            vs.canvas_item_set_custom_rect(vs_mesh.canvas_item, true, Rect2 {
-                origin: Point2::new(clip_rect.min.x, clip_rect.min.y),
-                size: Size2::new(clip_rect.max.x - clip_rect.min.x, clip_rect.max.y - clip_rect.min.y),
-            });
+            vs.canvas_item_set_custom_rect(
+                vs_mesh.canvas_item,
+                true,
+                Rect2 {
+                    origin: Point2::new(clip_rect.min.x, clip_rect.min.y),
+                    size: Size2::new(clip_rect.max.x - clip_rect.min.x, clip_rect.max.y - clip_rect.min.y),
+                },
+            );
         }
     }
 
     /// Call this to draw a new frame using a closure taking a single `egui::CtxRef` parameter
-    pub fn update_ctx(&mut self, owner: TRef<Control>, draw_fn: impl FnOnce(&mut egui::CtxRef) -> ()) {
+    pub fn update_ctx(&mut self, owner: TRef<Control>, draw_fn: impl FnOnce(&mut egui::CtxRef)) {
         // Collect input
         let mut raw_input = self.raw_input.take();
         let size = owner.get_rect().size;
@@ -364,7 +368,7 @@ impl GodotEgui {
     /// `update_ctx` if the `CentralPanel` is going to be used for convenience. Accepts an optional
     /// `egui::Frame` to draw the panel background
     pub fn update(
-        &mut self, owner: TRef<Control>, frame: Option<egui::Frame>, draw_fn: impl FnOnce(&mut egui::Ui) -> (),
+        &mut self, owner: TRef<Control>, frame: Option<egui::Frame>, draw_fn: impl FnOnce(&mut egui::Ui),
     ) {
         self.update_ctx(owner, |egui_ctx| {
             // Run user code
