@@ -24,7 +24,6 @@ pub fn progress_bar(ui: &mut egui::Ui, progress: f32) -> egui::Response {
     response
 }
 
-
 pub const NUMBER_KEYS: [egui::Key; 10] = [
     egui::Key::Num1,
     egui::Key::Num2,
@@ -38,7 +37,6 @@ pub const NUMBER_KEYS: [egui::Key; 10] = [
     egui::Key::Num0,
 ];
 
-
 pub trait ColorHelpers<T> {
     fn with_alpha(&self, alpha: T) -> Self;
     fn lightened(&self, amount: f32) -> Self;
@@ -47,7 +45,7 @@ impl ColorHelpers<u8> for egui::Color32 {
     fn with_alpha(&self, alpha: u8) -> Self {
         let mut color = *self;
         color[3] = alpha;
-        return color;
+        color
     }
     fn lightened(&self, amount: f32) -> Self {
         Self::from_rgba_premultiplied(
@@ -62,7 +60,7 @@ impl ColorHelpers<u8> for egui::Stroke {
     fn with_alpha(&self, alpha: u8) -> Self {
         let mut color = self.color;
         color[3] = alpha;
-        return Self { width: self.width, color };
+        Self { width: self.width, color }
     }
     fn lightened(&self, amount: f32) -> Self {
         Self { width: self.width, color: self.color.lightened(amount) }

@@ -35,11 +35,11 @@ impl GodotEguiExample {
     }
 
     #[export]
-    pub unsafe fn _ready(&mut self, owner: TRef<Control>) {
+    pub fn _ready(&mut self, owner: TRef<Control>) {
         godot_print!("Initializing godot egui");
         let gui = owner
             .get_node("GodotEgui")
-            .and_then(|godot_egui| godot_egui.assume_safe().cast::<Control>())
+            .and_then(|godot_egui| unsafe { godot_egui.assume_safe() }.cast::<Control>())
             .and_then(|godot_egui| godot_egui.cast_instance::<GodotEgui>())
             .expect("Expected a `GodotEgui` child with the GodotEgui nativescript class.");
 
@@ -66,8 +66,7 @@ impl GodotEguiExample {
 
         // A frame can be passed to `update` specifying background color, margin and other properties
         // You may also want to pass in `None` and draw a background using a regular Panel node instead.
-        let mut frame = egui::Frame::default();
-        frame.margin = egui::vec2(20.0, 20.0);
+        let frame = egui::Frame { margin: egui::vec2(20.0, 20.0), ..Default::default() };
 
         let mut should_reverse_font_priorities = false;
 
