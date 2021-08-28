@@ -107,5 +107,5 @@ If you use this library and enjoy it, please feel free to submit a PR and I will
 - [x] Initial integration and testing
 - [x] Release on crates.io
 - [x] Enable usage as an editor plugin
-- [ ] Theme editor: (#5)[https://github.com/setzer22/godot-egui/issues/5]
+- [ ] Theme editor [#5](https://github.com/setzer22/godot-egui/issues/5)
 - [ ] Expose a GDScript API so this is useful even without `godot-rust`
