@@ -131,9 +131,10 @@ impl GodotEgui {
         for font_path in self
             .custom_fonts
             .iter()
-            .filter(|x| x.as_ref().map(|x| x.is_empty()).unwrap_or(false))
+            .filter(|x| x.as_ref().map(|x| !x.is_empty()).unwrap_or(false))
             .map(|x| x.as_ref().unwrap())
         {
+
             let font_file = gdnative::api::File::new();
             match font_file.open(font_path, File::READ) {
                 Ok(_) => {
