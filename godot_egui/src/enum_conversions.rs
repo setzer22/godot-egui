@@ -1,8 +1,7 @@
 use gdnative::api::GlobalConstants;
 
 pub fn scancode_to_egui(scancode: i64) -> Option<egui::Key> {
-
-    let key = match scancode {
+    match scancode {
         GlobalConstants::KEY_DOWN => Some(egui::Key::ArrowDown),
         GlobalConstants::KEY_LEFT => Some(egui::Key::ArrowLeft),
         GlobalConstants::KEY_RIGHT => Some(egui::Key::ArrowRight),
@@ -55,9 +54,7 @@ pub fn scancode_to_egui(scancode: i64) -> Option<egui::Key> {
         GlobalConstants::KEY_Y => Some(egui::Key::Y),
         GlobalConstants::KEY_Z => Some(egui::Key::Z),
         _ => None,
-    };
-
-    key
+    }
 }
 
 pub fn mouse_button_index_to_egui(button_index: i64) -> Option<egui::PointerButton> {
