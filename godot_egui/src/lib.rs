@@ -12,7 +12,8 @@ pub(crate) mod enum_conversions;
 
 /// Some helper functions and traits for godot-egui
 pub mod egui_helpers;
-
+mod theme;
+pub use theme::GodotEguiTheme;
 
 /// Converts an egui color into a godot color
 pub fn egui2color(c: egui::Color32) -> Color {
@@ -78,6 +79,8 @@ pub struct GodotEgui {
     /// When enabled, no texture filtering will be performed. Useful for a pixel-art style.
     #[property]
     disable_texture_filtering: bool,
+    #[property]
+    theme: Option<Ref<gdnative::api::Resource>>
 }
 
 fn register_properties(builder: &ClassBuilder<GodotEgui>) {
@@ -110,6 +113,7 @@ impl GodotEgui {
             scroll_speed: 20.0,
             consume_mouse_events: true,
             disable_texture_filtering: false,
+            theme: None,
         }
     }
 
@@ -121,38 +125,56 @@ impl GodotEgui {
         self.egui_ctx.begin_frame(egui::RawInput::default());
         let _ = self.egui_ctx.end_frame();
 
-        // This is where "res://" points to
-        let mut font_defs = self.egui_ctx.fonts().definitions().clone();
-
-        if self.override_default_fonts {
-            font_defs.fonts_for_family.get_mut(&egui::FontFamily::Proportional).unwrap().clear()
-        }
-
-        for font_path in self
-            .custom_fonts
-            .iter()
-            .filter(|x| x.as_ref().map(|x| x.is_empty()).unwrap_or(false))
-            .map(|x| x.as_ref().unwrap())
-        {
-            let font_file = gdnative::api::File::new();
-            match font_file.open(font_path, File::READ) {
-                Ok(_) => {
-                    let file_data = font_file.get_buffer(font_file.get_len());
-                    let file_data = std::borrow::Cow::Owned(file_data.read().as_slice().to_owned());
-                    font_defs.font_data.insert(font_path.to_owned(), file_data);
-                    font_defs
-                        .fonts_for_family
-                        .get_mut(&egui::FontFamily::Proportional)
-                        .unwrap()
-                        .push(font_path.to_owned());
+        if let Some(theme) = self.theme.as_ref() {
+            godot_print!("load theme");
+            if let Some(theme) = theme.clone().cast_instance::<GodotEguiTheme>() {
+                let theme = unsafe { theme.assume_safe() };
+                if let Some(egui_theme) = theme.map(|t, _| {
+                    t.get_theme()
+                }).expect("this should work") {
+                    self.egui_ctx.set_style(egui_theme.style().clone());
+                    self.egui_ctx.set_fonts(egui_theme.font_definitions().clone());
+                } else {
+                    godot_error!("Could not load the theme")
                 }
-                Err(error) => {
-                    godot_error!("GodotEgui could not load a custom font file: {:?}", error);
+            } else {
+                godot_error!("this should cast to `GodotEguiTheme`");
+            }
+
+        } else {
+            // This is where "res://" points to
+            let mut font_defs = self.egui_ctx.fonts().definitions().clone();
+    
+            if self.override_default_fonts {
+                font_defs.fonts_for_family.get_mut(&egui::FontFamily::Proportional).unwrap().clear()
+            }
+    
+            for font_path in self
+                .custom_fonts
+                .iter()
+                .filter(|x| x.as_ref().map(|x| x.is_empty()).unwrap_or(false))
+                .map(|x| x.as_ref().unwrap())
+            {
+                let font_file = gdnative::api::File::new();
+                match font_file.open(font_path, File::READ) {
+                    Ok(_) => {
+                        let file_data = font_file.get_buffer(font_file.get_len());
+                        let file_data = std::borrow::Cow::Owned(file_data.read().as_slice().to_owned());
+                        font_defs.font_data.insert(font_path.to_owned(), file_data);
+                        font_defs
+                            .fonts_for_family
+                            .get_mut(&egui::FontFamily::Proportional)
+                            .unwrap()
+                            .push(font_path.to_owned());
+                    }
+                    Err(error) => {
+                        godot_error!("GodotEgui could not load a custom font file: {:?}", error);
+                    }
                 }
             }
+    
+            self.egui_ctx.set_fonts(font_defs);
         }
-
-        self.egui_ctx.set_fonts(font_defs);
     }
 
     fn maybe_set_mouse_input_as_handled(&self, owner: TRef<Control>) {
@@ -388,10 +410,16 @@ impl GodotEgui {
 /// Helper method that registers all GodotEgui `NativeClass` objects as scripts.
 /// ## Note
 /// This method should not be used in any library where `register_classes_as_tool` is run. Doing so may result in `gdnative` errors.
-pub fn register_classes(handle: InitHandle) { handle.add_class::<GodotEgui>(); }
+pub fn register_classes(handle: InitHandle) {
+    handle.add_class::<GodotEgui>();
+    handle.add_class::<GodotEguiTheme>();
+}
 
 /// Helper method that registers all GodotEgui `NativeClass` objects as tool scripts. This should **only** be used when GodotEgui is to be run inside the Godot editor.
 /// ## Note
 /// This method should not be used in any library where `register_classes` is run. Doing so may result in `gdnative` errors. 
-pub fn register_classes_as_tool(handle: InitHandle) { handle.add_tool_class::<GodotEgui>(); }
+pub fn register_classes_as_tool(handle: InitHandle) {
+    handle.add_tool_class::<GodotEgui>();
+    handle.add_tool_class::<GodotEguiTheme>();
+}
 
