@@ -132,8 +132,9 @@ impl GodotEgui {
                 if let Some(egui_theme) = theme.map(|t, _| {
                     t.get_theme()
                 }).expect("this should work") {
-                    self.egui_ctx.set_style(egui_theme.style().clone());
-                    self.egui_ctx.set_fonts(egui_theme.font_definitions().clone());
+                    let (style, font_definitions) = egui_theme.extract();
+                    self.egui_ctx.set_style(style);
+                    self.egui_ctx.set_fonts(font_definitions);
                 } else {
                     godot_error!("Could not load the theme")
                 }

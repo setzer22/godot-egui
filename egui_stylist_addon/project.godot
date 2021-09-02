@@ -14,6 +14,10 @@ config/name="Godot Egui Stylist"
 run/main_scene="res://addons/egui_stylist/egui_stylist.tscn"
 config/icon="res://icon.png"
 
+[editor_plugins]
+
+enabled=PoolStringArray( "res://addons/egui_stylist/plugin.cfg" )
+
 [physics]
 
 common/enable_pause_aware_picking=true
