@@ -2,7 +2,7 @@
 
 [ext_resource path="res://addons/egui_stylist/godot_egui_stylist.gdns" type="Script" id=1]
 [ext_resource path="res://addons/egui_stylist/godot_egui.gdns" type="Script" id=2]
-[ext_resource path="res://addons/egui_stylist/godot-editor.tres" type="Resource" id=3]
+[ext_resource path="res://addons/egui_stylist/godot-editor.eguitheme" type="Resource" id=3]
 
 [node name="egui_stylist" type="Control"]
 anchor_right = 1.0
@@ -24,11 +24,11 @@ script = ExtResource( 2 )
 __meta__ = {
 "_edit_use_anchors_": false
 }
-override_default_fonts = false
-consume_mouse_events = true
-disable_texture_filtering = false
-theme = ExtResource( 3 )
 scroll_speed = 20.0
+disable_texture_filtering = false
+consume_mouse_events = true
+override_default_fonts = false
+theme = ExtResource( 3 )
 
 [node name="file_dialog" type="FileDialog" parent="."]
 margin_right = 315.0

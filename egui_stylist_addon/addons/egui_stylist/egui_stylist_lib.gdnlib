@@ -2,15 +2,15 @@
 
 singleton=false
 load_once=true
-symbol_prefix="godot_"
-reloadable=true
+symbol_prefix="gd_egui_stylist_"
+reloadable=false
 
 [entry]
 
-X11.64="res://../target/debug/libgodot_egui_stylist.so"
-OSX.64="res://../target/debug/libgodot_egui_stylist.dylib"
-Windows.64="res://../target/debug/godot_egui_stylist.dll"
+OSX.64="res://addons/egui_stylist/libgodot_egui_stylist.dylib"
+Windows.64="res://addons/egui_stylist/godot_egui_stylist.dll"
+X11.64="res://addons/egui_stylist/libgodot_egui_stylist.so"
 
 [dependencies]
 
-X11.64=[  ]
+Windows.64=[  ]

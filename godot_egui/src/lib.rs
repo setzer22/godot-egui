@@ -80,7 +80,7 @@ pub struct GodotEgui {
     #[property]
     disable_texture_filtering: bool,
     #[property]
-    theme: Option<Ref<gdnative::api::Resource>>
+    theme: Option<Ref<gdnative::api::Resource>>,
 }
 
 fn register_properties(builder: &ClassBuilder<GodotEgui>) {
@@ -129,9 +129,7 @@ impl GodotEgui {
             godot_print!("load theme");
             if let Some(theme) = theme.clone().cast_instance::<GodotEguiTheme>() {
                 let theme = unsafe { theme.assume_safe() };
-                if let Some(egui_theme) = theme.map(|t, _| {
-                    t.get_theme()
-                }).expect("this should work") {
+                if let Some(egui_theme) = theme.map(|t, _| t.get_theme()).expect("this should work") {
                     let (style, font_definitions) = egui_theme.extract();
                     self.egui_ctx.set_style(style);
                     self.egui_ctx.set_fonts(font_definitions);
@@ -141,15 +139,14 @@ impl GodotEgui {
             } else {
                 godot_error!("this should cast to `GodotEguiTheme`");
             }
-
         } else {
             // This is where "res://" points to
             let mut font_defs = self.egui_ctx.fonts().definitions().clone();
-    
+
             if self.override_default_fonts {
                 font_defs.fonts_for_family.get_mut(&egui::FontFamily::Proportional).unwrap().clear()
             }
-    
+
             for font_path in self
                 .custom_fonts
                 .iter()
@@ -173,7 +170,7 @@ impl GodotEgui {
                     }
                 }
             }
-    
+
             self.egui_ctx.set_fonts(font_defs);
         }
     }
@@ -230,9 +227,9 @@ impl GodotEgui {
             if let Some(key) = enum_conversions::scancode_to_egui(key_ev.scancode()) {
                 let mods = key_ev.get_scancode_with_modifiers();
                 let modifiers = egui::Modifiers {
-                    ctrl: (mods & GlobalConstants::KEY_MASK_CTRL) == 0,
-                    shift: (mods & GlobalConstants::KEY_MASK_SHIFT) == 0,
-                    alt: (mods & GlobalConstants::KEY_ALT) == 0,
+                    ctrl: (mods & GlobalConstants::KEY_MASK_CTRL) != 0,
+                    shift: (mods & GlobalConstants::KEY_MASK_SHIFT) != 0,
+                    alt: (mods & GlobalConstants::KEY_MASK_ALT) != 0,
                     ..Default::default()
                 };
 
@@ -405,7 +402,9 @@ impl GodotEgui {
         })
     }
 
-    pub fn mouse_was_captured(&self) -> bool { self.mouse_was_captured }
+    pub fn mouse_was_captured(&self) -> bool {
+        self.mouse_was_captured
+    }
 }
 
 /// Helper method that registers all GodotEgui `NativeClass` objects as scripts.
@@ -418,9 +417,8 @@ pub fn register_classes(handle: InitHandle) {
 
 /// Helper method that registers all GodotEgui `NativeClass` objects as tool scripts. This should **only** be used when GodotEgui is to be run inside the Godot editor.
 /// ## Note
-/// This method should not be used in any library where `register_classes` is run. Doing so may result in `gdnative` errors. 
+/// This method should not be used in any library where `register_classes` is run. Doing so may result in `gdnative` errors.
 pub fn register_classes_as_tool(handle: InitHandle) {
     handle.add_tool_class::<GodotEgui>();
     handle.add_tool_class::<GodotEguiTheme>();
 }
-

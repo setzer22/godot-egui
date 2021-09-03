@@ -16,7 +16,7 @@ config/icon="res://icon.png"
 
 [editor_plugins]
 
-enabled=PoolStringArray( "res://addons/egui_stylist/plugin.cfg" )
+enabled=PoolStringArray( "res://addons/egui_stylist/plugin.cfg", "res://addons/egui_theme_importer/plugin.cfg" )
 
 [physics]
 

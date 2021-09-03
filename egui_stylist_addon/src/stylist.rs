@@ -1,7 +1,7 @@
-use gdnative::prelude::*;
-use gdnative::api::{FileDialog, ResourceSaver};
-use godot_egui::GodotEgui;
 use egui_stylist::StylerState;
+use gdnative::api::{FileDialog};
+use gdnative::prelude::*;
+use godot_egui::GodotEgui;
 
 use godot_egui::GodotEguiTheme;
 
@@ -16,11 +16,7 @@ pub struct GodotEguiStylist {
 #[methods]
 impl GodotEguiStylist {
     fn new(_: &Control) -> Self {
-        Self {
-            style: StylerState::default(),
-            godot_egui: None,
-            file_dialog: None,
-        }
+        Self { style: StylerState::default(), godot_egui: None, file_dialog: None }
     }
     #[export]
     fn _ready(&mut self, owner: TRef<Control>) {
@@ -31,29 +27,41 @@ impl GodotEguiStylist {
             .expect("Expected a `GodotEgui` child with the GodotEgui nativescript class.");
         let file_dialog = owner
             .get_node("file_dialog")
-            .and_then(|fd| unsafe {fd.assume_safe()}.cast::<FileDialog>())
+            .and_then(|fd| unsafe { fd.assume_safe() }.cast::<FileDialog>())
             .expect("Expected a `FileDialog` to be present as a child with name 'file_dialog'");
         file_dialog.set_access(FileDialog::ACCESS_RESOURCES);
-        let mut filters = StringArray::new();
-        filters.push("*.ron; Ron format".into());
-        filters.push("*.eguitheme; egui theme format".into());
-        filters.push("*.tres; Godot Resource format".into());
-        file_dialog.set_filters(filters);
-        file_dialog.connect("file_selected", owner, "on_file_selected", VariantArray::new_shared(), Object::CONNECT_DEFERRED).expect("this should work");
-        file_dialog.connect("popup_hide", owner, "on_file_dialog_closed", VariantArray::new_shared(), Object::CONNECT_DEFERRED).expect("this should work");
-                    
+        file_dialog
+            .connect(
+                "file_selected",
+                owner,
+                "on_file_selected",
+                VariantArray::new_shared(),
+                Object::CONNECT_DEFERRED,
+            )
+            .expect("this should work");
+        file_dialog
+            .connect(
+                "popup_hide",
+                owner,
+                "on_file_dialog_closed",
+                VariantArray::new_shared(),
+                Object::CONNECT_DEFERRED,
+            )
+            .expect("this should work");
+
         self.godot_egui = Some(gui.claim());
         self.file_dialog = Some(file_dialog.claim());
     }
     #[export]
     fn _process(&mut self, owner: TRef<Control>, _: f32) {
         let egui = unsafe { self.godot_egui.as_ref().expect("this must be initialized").assume_safe() };
-        egui.map_mut(|gui, gui_owner|{
+        egui.map_mut(|gui, gui_owner| {
             gui.update_ctx(gui_owner, |ctx| {
                 egui::TopBottomPanel::top("top_panel").show(ctx, |ui| self.menu_bar(owner, gui_owner, ui));
                 egui::CentralPanel::default().show(ctx, |ui| self.style.ui(ui));
             });
-        }).expect("this should work");
+        })
+        .expect("this should work");
     }
     #[export]
     fn on_file_dialog_closed(&mut self, _: &Control) {
@@ -61,9 +69,10 @@ impl GodotEguiStylist {
         // owner.set_process(true);
         unsafe { self.godot_egui.as_ref().expect("should be initialized").assume_safe() }
             .map_mut(|_, o| {
-            godot_print!("reenable input on `GodotEgui`");
-            o.set_process_input(true);
-        }).expect("this should work");
+                godot_print!("reenable input on `GodotEgui`");
+                o.set_process_input(true);
+            })
+            .expect("this should work");
     }
     #[export]
     fn on_file_selected(&mut self, _: TRef<Control>, path: GodotString) {
@@ -80,9 +89,10 @@ impl GodotEguiStylist {
         }
         unsafe { self.godot_egui.as_ref().expect("should be initialized").assume_safe() }
             .map_mut(|_egui, o| {
-            godot_print!("reenable input on `GodotEgui`");
-            o.set_process_input(true);
-        }).expect("this should work");
+                godot_print!("reenable input on `GodotEgui`");
+                o.set_process_input(true);
+            })
+            .expect("this should work");
         fd.hide();
         // self.disconnect_signals(owner);
     }
@@ -96,6 +106,11 @@ impl GodotEguiStylist {
                     let fd = unsafe { self.file_dialog.expect("file dialog should be initialized").assume_safe() };
                     fd.set_mode(FileDialog::MODE_OPEN_FILE);
                     fd.popup_centered(Vector2::new(500.0, 500.0));
+                    // Push the file filters to the file dialog
+                    let mut filters = StringArray::new();
+                    filters.push("*.ron; Ron format".into());
+                    filters.push("*.eguitheme; egui theme format".into());
+                    fd.set_filters(filters);
                     godot_print!("disable input on `GodotEgui`");
                     gui_owner.set_process_input(false);
                 }
@@ -104,6 +119,10 @@ impl GodotEguiStylist {
                     let fd = unsafe { self.file_dialog.expect("file dialog should be initialized").assume_safe() };
                     fd.set_mode(FileDialog::MODE_SAVE_FILE);
                     fd.popup_centered(Vector2::new(500.0, 500.0));
+                    // Push the file filters to the file dialog
+                    let mut filters = StringArray::new();
+                    filters.push("*.eguitheme; egui theme format".into());
+                    fd.set_filters(filters);
                     godot_print!("disable input on `GodotEgui`");
                     gui_owner.set_process_input(false);
                 }
@@ -133,8 +152,7 @@ impl GodotEguiStylist {
 fn read_file(filepath: &str) -> String {
     use gdnative::api::File;
     let file = File::new();
-    file.open(filepath, File::READ)
-        .unwrap_or_else(|_| panic!("{} must exist", &filepath));
+    file.open(filepath, File::READ).unwrap_or_else(|_| panic!("{} must exist", &filepath));
     file.get_as_text().to_string()
 }
 
@@ -143,18 +161,18 @@ pub fn load_theme(path: GodotString) -> egui_stylist::EguiTheme {
     // Load the GodotEguiTheme via the ResourceLoader and then extract the EguiTheme
     let file_path = path.to_string();
     let path = Path::new(&file_path);
-    let is_godot_resource = if let Some(ext) = path.extension() {
-        ext.eq("tres") || ext.eq("tres")
-    } else { false };
+    let is_godot_resource =
+        if let Some(ext) = path.extension() { ext.eq("tres") || ext.eq("tres") } else { false };
     // We should allow for both godot resources as well as the vanilla .ron files to be published.
     let theme = if is_godot_resource {
         let loader = ResourceLoader::godot_singleton();
         let rsrc = loader.load(file_path, "", false).expect("this should be a valid path");
-        let rsrc =  unsafe {rsrc.assume_safe() }.cast::<gdnative::api::Resource>().expect("this should be a resource file");
+        let rsrc = unsafe { rsrc.assume_safe() }
+            .cast::<gdnative::api::Resource>()
+            .expect("this should be a resource file");
         let rsrc = rsrc.cast_instance::<GodotEguiTheme>().expect("this should be a `GodotEguiTheme`");
-        rsrc.map(|theme, _|{
-            ron::from_str(&theme.serialized_theme).expect("this should load")
-        }).expect("there should be no error")
+        rsrc.map(|theme, _| ron::from_str(&theme.serialized_theme).expect("this should load"))
+            .expect("there should be no error")
     } else {
         let file = read_file(&file_path);
         ron::from_str(&file).expect("this should load")
@@ -163,10 +181,12 @@ pub fn load_theme(path: GodotString) -> egui_stylist::EguiTheme {
 }
 
 pub fn save_theme(path: GodotString, theme: egui_stylist::EguiTheme) {
-    let saver = ResourceSaver::godot_singleton();
+    use gdnative::api::File;
+    // First serialize the theme into ron again
     let serialized_theme = ron::to_string(&theme).expect("this should work");
-    let resource = GodotEguiTheme {
-        serialized_theme
-    }.emplace().into_base();
-    saver.save(path, resource, ResourceSaver::FLAG_REPLACE_SUBRESOURCE_PATHS).expect("this should work");
+    // Save it to a file
+    let path = path.to_string();
+    let file = File::new();
+    file.open(&path, File::WRITE).unwrap_or_else(|_| panic!("{} must exist", &path));
+    file.store_string(serialized_theme);
 }
