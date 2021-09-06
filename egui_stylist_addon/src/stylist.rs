@@ -156,7 +156,7 @@ fn read_file(filepath: &str) -> String {
     file.get_as_text().to_string()
 }
 
-pub fn load_theme(path: GodotString) -> egui_stylist::EguiTheme {
+pub fn load_theme(path: GodotString) -> egui_theme::EguiTheme {
     use std::path::Path;
     // Load the GodotEguiTheme via the ResourceLoader and then extract the EguiTheme
     let file_path = path.to_string();
@@ -180,7 +180,7 @@ pub fn load_theme(path: GodotString) -> egui_stylist::EguiTheme {
     theme
 }
 
-pub fn save_theme(path: GodotString, theme: egui_stylist::EguiTheme) {
+pub fn save_theme(path: GodotString, theme: egui_theme::EguiTheme) {
     use gdnative::api::File;
     // First serialize the theme into ron again
     let serialized_theme = ron::to_string(&theme).expect("this should work");

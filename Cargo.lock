@@ -562,6 +562,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "egui-stylist"
+version = "0.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1699c4882291692cd46955620d6908d45c870146c54b120fbc3bcc610df667da"
+dependencies = [
+ "base64",
+ "eframe",
+ "egui-theme",
+ "futures",
+ "rfd",
+ "ron",
+ "serde",
+]
+
+[[package]]
+name = "egui-theme"
+version = "0.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "498f7a371faf2da6a629ab7570640d3610f25af750047e120c4e1b76b20b3017"
+dependencies = [
+ "base64",
+ "egui",
+ "ron",
+ "serde",
+]
+
+[[package]]
 name = "egui_glium"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -575,19 +602,6 @@ dependencies = [
  "ron",
  "serde",
  "webbrowser",
-]
-
-[[package]]
-name = "egui_stylist"
-version = "0.1.3"
-source = "git+https://github.com/jacobsky/egui-stylist#2ec3f6fbf11ae604dd0805630e91d7e39f5796be"
-dependencies = [
- "base64",
- "eframe",
- "futures",
- "rfd",
- "ron",
- "serde",
 ]
 
 [[package]]
@@ -1053,7 +1067,7 @@ name = "godot_egui"
 version = "0.1.7"
 dependencies = [
  "egui",
- "egui_stylist",
+ "egui-theme",
  "gdnative",
  "ron",
 ]
@@ -1073,7 +1087,8 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "egui",
- "egui_stylist",
+ "egui-stylist",
+ "egui-theme",
  "gdnative",
  "godot_egui",
  "ron",

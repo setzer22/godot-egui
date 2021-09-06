@@ -4,7 +4,7 @@ use std::rc::Rc;
 use gdnative::api::{
     File, GlobalConstants, ImageTexture, InputEventMouseButton, InputEventMouseMotion, VisualServer,
 };
-use gdnative::nativescript::property::{EnumHint, StringHint};
+
 use gdnative::prelude::*;
 
 /// Contains conversion tables between Godot and egui input constants (keys, mouse buttons)
@@ -54,19 +54,12 @@ struct SyncedTexture {
 /// The `update` or `update_ctx` methods can be used to draw a new frame.
 #[derive(NativeClass)]
 #[inherit(gdnative::api::Control)]
-#[register_with(register_properties)]
 pub struct GodotEgui {
     pub egui_ctx: egui::CtxRef,
     meshes: Vec<VisualServerMesh>,
     main_texture: SyncedTexture,
     raw_input: Rc<RefCell<egui::RawInput>>,
     mouse_was_captured: bool,
-
-    /// If set to true, egui's default fonts will be ignored. You can set `custom_fonts` instead.
-    #[property]
-    override_default_fonts: bool,
-    /// Custom font paths. If set, they will get loaded into egui during _ready
-    custom_fonts: [Option<String>; 5],
 
     /// The amount of scrolled pixels per mouse wheel event
     #[property]
@@ -83,17 +76,6 @@ pub struct GodotEgui {
     theme: Option<Ref<gdnative::api::Resource>>,
 }
 
-fn register_properties(builder: &ClassBuilder<GodotEgui>) {
-    for i in 0..5 {
-        builder
-            .add_property::<String>(&format!("custom_font_{}", i + 1))
-            .with_getter(move |x: &GodotEgui, _| x.custom_fonts[i].as_ref().cloned().unwrap_or_default())
-            .with_setter(move |x: &mut GodotEgui, _, new_val| x.custom_fonts[i] = Some(new_val))
-            .with_default("".to_owned())
-            .with_hint(StringHint::File(EnumHint::new(vec!["*.ttf".to_owned(), "*.otf".to_owned()])))
-            .done();
-    }
-}
 
 #[gdnative::methods]
 impl GodotEgui {
@@ -108,8 +90,6 @@ impl GodotEgui {
             },
             raw_input: Rc::new(RefCell::new(egui::RawInput::default())),
             mouse_was_captured: false,
-            override_default_fonts: false,
-            custom_fonts: [None, None, None, None, None],
             scroll_speed: 20.0,
             consume_mouse_events: true,
             disable_texture_filtering: false,
@@ -126,7 +106,6 @@ impl GodotEgui {
         let _ = self.egui_ctx.end_frame();
 
         if let Some(theme) = self.theme.as_ref() {
-            godot_print!("load theme");
             if let Some(theme) = theme.clone().cast_instance::<GodotEguiTheme>() {
                 let theme = unsafe { theme.assume_safe() };
                 if let Some(egui_theme) = theme.map(|t, _| t.get_theme()).expect("this should work") {
@@ -139,39 +118,6 @@ impl GodotEgui {
             } else {
                 godot_error!("this should cast to `GodotEguiTheme`");
             }
-        } else {
-            // This is where "res://" points to
-            let mut font_defs = self.egui_ctx.fonts().definitions().clone();
-
-            if self.override_default_fonts {
-                font_defs.fonts_for_family.get_mut(&egui::FontFamily::Proportional).unwrap().clear()
-            }
-
-            for font_path in self
-                .custom_fonts
-                .iter()
-                .filter(|x| x.as_ref().map(|x| x.is_empty()).unwrap_or(false))
-                .map(|x| x.as_ref().unwrap())
-            {
-                let font_file = gdnative::api::File::new();
-                match font_file.open(font_path, File::READ) {
-                    Ok(_) => {
-                        let file_data = font_file.get_buffer(font_file.get_len());
-                        let file_data = std::borrow::Cow::Owned(file_data.read().as_slice().to_owned());
-                        font_defs.font_data.insert(font_path.to_owned(), file_data);
-                        font_defs
-                            .fonts_for_family
-                            .get_mut(&egui::FontFamily::Proportional)
-                            .unwrap()
-                            .push(font_path.to_owned());
-                    }
-                    Err(error) => {
-                        godot_error!("GodotEgui could not load a custom font file: {:?}", error);
-                    }
-                }
-            }
-
-            self.egui_ctx.set_fonts(font_defs);
         }
     }
 

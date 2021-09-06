@@ -1,4 +1,4 @@
-use egui_stylist::EguiTheme;
+use egui_theme::EguiTheme;
 use gdnative::api::Resource;
 use gdnative::prelude::*;
 

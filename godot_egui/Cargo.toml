@@ -14,6 +14,6 @@ workspace = ".."
 [dependencies]
 gdnative = "0.9.3"
 egui = "0.14.2"
-egui_stylist = { version = "0.1.3", git = "https://github.com/jacobsky/egui-stylist"  }
+egui-theme = "0.0.4"
 ron = "0.6.4"
 

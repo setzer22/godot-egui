@@ -17,6 +17,7 @@ pub struct GodotEguiExample {
     icon_2: Ref<Texture>,
     use_custom_fonts: bool,
     show_font_settings: bool,
+    text_edit_text: String,
 }
 
 #[gdnative::methods]
@@ -31,6 +32,7 @@ impl GodotEguiExample {
             icon_2: load_texture("res://icon_ferris.png"),
             use_custom_fonts: false,
             show_font_settings: false,
+            text_edit_text: "This is a text edit!".to_owned(),
         }
     }
 
@@ -162,6 +164,10 @@ impl GodotEguiExample {
                                 self.show_font_settings = true;
                             }
                         });
+                        ui.horizontal(|ui| {
+                            ui.label("You can also edit text like below!");
+                            ui.text_edit_multiline(&mut self.text_edit_text);
+                        })
                     });
                 });
 
@@ -189,8 +195,8 @@ impl GodotEguiExample {
 }
 
 fn init(handle: InitHandle) {
-    handle.add_tool_class::<GodotEguiExample>();
-    godot_egui::register_classes_as_tool(handle);
+    handle.add_class::<GodotEguiExample>();
+    godot_egui::register_classes(handle);
 }
 
 godot_init!(init);
