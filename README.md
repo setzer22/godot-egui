@@ -78,19 +78,16 @@ Should be as simple as:
 2. Open `./example_project/ with the Godot Editor
 3. Hit play
 
+## Themes
+
+Godot Egui supports themes based on the `egui-theme` module of [egui-stylist](https://github.com/jacobsky/egui-stylist/) and ships with two addons that can be used to create export and automatically import themes into a godot usable format.
+
+Themes are based on the `egui::Style` and `egui::FontDefinitions` structs and are fully configurable and support Serialization and Deserialization via any Serialization format that you can support.
+
+For more information on how to create your first theme please see the [egui-stylist addon's readme](./egui_stylist_addon/README.md).
 ## Custom Fonts
 
-Egui supports setting custom fonts out of the box: 
-
-- https://docs.rs/egui/0.13.1/egui/struct.FontDefinitions.html
-- https://docs.rs/egui/0.13.1/egui/struct.Context.html#method.set_fonts
-
-Additionally, godot-egui supports registering custom fonts by directly from the Godot editor by exposing several script properties.
-![Panel showcasing custom fonts](./resources/custom_fonts.png)
-
-The fonts will be loaded into the `egui::FontFamily::Proportional` family in order. If you don't want egui's default fonts, the `override_default_fonts` boolean can be set so that only Custom fonts get loaded.
-
-
+Custom fonts have been removed now that [Theme](#themes) support has been added.
 
 ## Maturity
 
