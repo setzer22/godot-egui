@@ -208,9 +208,9 @@ impl GodotEgui {
             if let Some(key) = enum_conversions::scancode_to_egui(key_ev.scancode()) {
                 let mods = key_ev.get_scancode_with_modifiers();
                 let modifiers = egui::Modifiers {
-                    ctrl: (mods & GlobalConstants::KEY_MASK_CTRL) == 0,
-                    shift: (mods & GlobalConstants::KEY_MASK_SHIFT) == 0,
-                    alt: (mods & GlobalConstants::KEY_ALT) == 0,
+                    ctrl: (mods & GlobalConstants::KEY_MASK_CTRL) != 0,
+                    shift: (mods & GlobalConstants::KEY_MASK_SHIFT) != 0,
+                    alt: (mods & GlobalConstants::KEY_ALT) != 0,
                     ..Default::default()
                 };
 
