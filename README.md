@@ -85,6 +85,13 @@ Godot Egui supports themes based on the `egui-theme` module of [egui-stylist](ht
 Themes are based on the `egui::Style` and `egui::FontDefinitions` structs and are fully configurable and support Serialization and Deserialization via any Serialization format that you can support.
 
 For more information on how to create your first theme please see the [egui-stylist addon's readme](./egui_stylist_addon/README.md).
+
+**Can I use my pre-existing Godot Themes with Egui?**
+
+Unfortunately, this is not supported.
+
+This is due to egui and Godot taking very different approaches to UI skinning. Godot has very fine grained themes and tools for modifying how widgets draw themselves while egui has far simplier sets of rules for coloring windows and widgets. As a result, there's no good way to map between the two.
+
 ## Custom Fonts
 
 Custom fonts have been removed now that [Theme](#themes) support has been added.
@@ -104,5 +111,5 @@ If you use this library and enjoy it, please feel free to submit a PR and I will
 - [x] Initial integration and testing
 - [x] Release on crates.io
 - [x] Enable usage as an editor plugin
-- [ ] Theme editor [#5](https://github.com/setzer22/godot-egui/issues/5)
+- [x] Theme editor [#5](https://github.com/setzer22/godot-egui/issues/5)
 - [ ] Expose a GDScript API so this is useful even without `godot-rust`
