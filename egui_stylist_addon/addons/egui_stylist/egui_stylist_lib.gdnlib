@@ -1,0 +1,16 @@
+[general]
+
+singleton=false
+load_once=true
+symbol_prefix="gd_egui_stylist_"
+reloadable=false
+
+[entry]
+
+OSX.64="res://addons/egui_stylist/libgodot_egui_stylist.dylib"
+Windows.64="res://addons/egui_stylist/godot_egui_stylist.dll"
+X11.64="res://addons/egui_stylist/libgodot_egui_stylist.so"
+
+[dependencies]
+
+Windows.64=[  ]

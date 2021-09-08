@@ -1,0 +1,20 @@
+[package]
+name = "godot_egui_stylist"
+version = "0.1.0"
+authors = ["Jacobsky"]
+publish = false
+edition = "2018"
+workspace = ".."
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+gdnative = "0.9.3"
+egui = "0.14.2"
+godot_egui = { path = "../godot_egui" }
+egui-stylist = "0.0.4"
+egui-theme = "0.0.4"
+ron = "0.6.4"
+anyhow = "1.0.43"
+serde = "1.0.130"

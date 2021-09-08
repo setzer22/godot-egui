@@ -1,5 +1,6 @@
 [workspace]
 members = [
     "godot_egui",
-    "example_project"
+    "example_project",
+    "egui_stylist_addon"
 ]

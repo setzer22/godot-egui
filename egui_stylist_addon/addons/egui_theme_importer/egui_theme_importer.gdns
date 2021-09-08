@@ -1,0 +1,8 @@
+[gd_resource type="NativeScript" load_steps=2 format=2]
+
+[ext_resource path="res://addons/egui_stylist/egui_stylist_lib.gdnlib" type="GDNativeLibrary" id=1]
+
+[resource]
+resource_name = "GodotEguiThemeImporter"
+class_name = "GodotEguiThemeImporter"
+library = ExtResource( 1 )
