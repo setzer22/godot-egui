@@ -1,6 +1,8 @@
 use egui::ComboBox;
 use gdnative::prelude::*;
 use godot_egui::GodotEgui;
+mod window;
+use window::GodotEguiWindowExample;
 
 pub fn load_texture(path: &str) -> Ref<Texture> {
     let loader = ResourceLoader::godot_singleton();
@@ -26,6 +28,10 @@ pub struct GodotEguiExample {
     /// # Warning: This setting is very performance intensive and for demonstration purposes only.
     #[property(default = false)]
     dynamically_change_pixels_per_point: bool,
+    #[property]
+    handle_gui_input: bool,
+    #[property]
+    handle_input: bool,
 }
 
 #[gdnative::methods]
@@ -44,12 +50,20 @@ impl GodotEguiExample {
             show_font_settings: false,
             text_edit_text: "This is a text edit!".to_owned(),
             dynamically_change_pixels_per_point: false,
+            handle_gui_input: false,
+            handle_input: false,
         }
     }
 
     #[export]
     #[gdnative::profiled]
     pub fn _ready(&mut self, owner: TRef<Control>) {
+        owner.set_process_input(self.handle_input);
+        if self.handle_gui_input {
+            owner.set_mouse_filter(Control::MOUSE_FILTER_STOP);
+        } else {
+            owner.set_mouse_filter(Control::MOUSE_FILTER_IGNORE);
+        }
         godot_print!("Initializing godot egui");
         let gui = owner
             .get_node("GodotEgui")
@@ -71,14 +85,38 @@ impl GodotEguiExample {
         .stroke(egui::Stroke::new(3.0, egui::Color32::from_rgb(200, 100, 100)))
         .name("wave")
     }
+    /// Updates egui from the `_input` callback
+    #[export]
+    #[gdnative::profiled]
+    pub fn _input(&mut self, owner: TRef<Control>, event: Ref<InputEvent>) {
+        let gui = unsafe { self.gui.as_ref().expect("GUI initialized").assume_safe() };
+        gui.map_mut(|gui, instance| {
+            gui.handle_godot_input(instance, event, false);
+            if gui.mouse_was_captured(instance) {
+                // Set the input as handled by the viewport if the gui believes that is has been captured.
+                unsafe { owner.get_viewport().expect("Viewport").assume_safe().set_input_as_handled() };
+            }
+        }).expect("map_mut should succeed");
+    }
 
+    /// Updates egui from the `_gui_input` callback
+    #[export]
+    #[gdnative::profiled]
+    pub fn _gui_input(&mut self, owner: TRef<Control>, event: Ref<InputEvent>) {
+        let gui = unsafe { self.gui.as_ref().expect("GUI initialized").assume_safe() };
+        gui.map_mut(|gui, instance| {
+            gui.handle_godot_input(instance, event, true);
+            if gui.mouse_was_captured(instance) {
+                owner.accept_event();
+            }
+        }).expect("map_mut should succeed");
+    }
     #[export]
     #[gdnative::profiled]
     pub fn _process(&mut self, _owner: TRef<Control>, delta: f64) {
         let gui = unsafe { self.gui.as_ref().expect("GUI initialized").assume_safe() };
 
         self.elapsed_time += delta;
-
         
         // A frame can be passed to `update` specifying background color, margin and other properties
         // You may also want to pass in `None` and draw a background using a regular Panel node instead.
@@ -222,6 +260,7 @@ impl GodotEguiExample {
 
 fn init(handle: InitHandle) {
     handle.add_class::<GodotEguiExample>();
+    handle.add_class::<GodotEguiWindowExample>();
     godot_egui::register_classes(handle);
 }
 

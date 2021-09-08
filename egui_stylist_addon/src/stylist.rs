@@ -1,5 +1,5 @@
 use egui_stylist::StylistState;
-use gdnative::api::{FileDialog};
+use gdnative::api::FileDialog;
 use gdnative::prelude::*;
 use godot_egui::GodotEgui;
 
@@ -16,6 +16,19 @@ impl GodotEguiStylist {
     fn new(_: &Control) -> Self {
         Self { style: StylistState::default(), godot_egui: None, file_dialog: None }
     }
+    
+    /// Updates egui from the `_gui_input` callback
+    #[export]
+    pub fn _gui_input(&mut self, owner: TRef<Control>, event: Ref<InputEvent>) {
+        let gui = unsafe { self.godot_egui.as_ref().expect("GUI initialized").assume_safe() };
+        gui.map_mut(|gui, instance| {
+            gui.handle_godot_input(instance, event, true);
+            if gui.mouse_was_captured(instance) {
+                owner.accept_event();
+            }
+        }).expect("map_mut should succeed");
+    }
+
     #[export]
     fn _ready(&mut self, owner: TRef<Control>) {
         let gui = owner
