@@ -12,16 +12,18 @@ script = ExtResource( 2 )
 __meta__ = {
 "_edit_use_anchors_": false
 }
+handle_input = true
+handle_gui_input = false
 
 [node name="GodotEgui" type="Control" parent="."]
 anchor_right = 1.0
 anchor_bottom = 1.0
+mouse_filter = 2
 script = ExtResource( 1 )
 __meta__ = {
 "_edit_use_anchors_": false
 }
-continous_update = true
-consume_mouse_events = true
-disable_texture_filtering = false
 scroll_speed = 20.0
+continous_update = true
+disable_texture_filtering = false
 EguiTheme = "res://godot-editor.eguitheme"

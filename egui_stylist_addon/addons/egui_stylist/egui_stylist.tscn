@@ -16,6 +16,7 @@ __meta__ = {
 [node name="godot_egui" type="Control" parent="."]
 anchor_right = 1.0
 anchor_bottom = 1.0
+focus_mode = 1
 size_flags_horizontal = 3
 size_flags_vertical = 3
 script = ExtResource( 2 )
