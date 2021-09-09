@@ -61,6 +61,11 @@ pub struct GodotEgui {
     raw_input: Rc<RefCell<egui::RawInput>>,
     mouse_was_captured: bool,
 
+    /// This flag will force a UI to redraw every frame.
+    /// This can be used for when the UI's backend events are always changing.
+    #[property]
+    continous_update: bool,
+
     /// The amount of scrolled pixels per mouse wheel event
     #[property]
     scroll_speed: f32,
@@ -90,12 +95,14 @@ impl GodotEgui {
             },
             raw_input: Rc::new(RefCell::new(egui::RawInput::default())),
             mouse_was_captured: false,
+            continous_update: false,
             scroll_speed: 20.0,
             consume_mouse_events: true,
             disable_texture_filtering: false,
             theme: None,
         }
     }
+
 
     /// Run when this node is added to the scene tree. Runs some initialization logic, like registering any
     /// custom fonts defined as properties
@@ -305,7 +312,12 @@ impl GodotEgui {
             );
         }
     }
-
+    /// Requests that the UI is refreshed from EGUI.
+    /// This function should only be used when `continuous_update` is false and the GUI needs to be updated (such as due to the model being updated).
+    #[export]
+    fn refresh(&self, _owner: TRef<Control>) {
+        self.egui_ctx.request_repaint();
+    }
     /// Call this to draw a new frame using a closure taking a single `egui::CtxRef` parameter
     pub fn update_ctx(&mut self, owner: TRef<Control>, draw_fn: impl FnOnce(&mut egui::CtxRef)) {
         // Collect input
@@ -316,18 +328,25 @@ impl GodotEgui {
 
         self.egui_ctx.begin_frame(raw_input);
 
+        // Each frame of a continous update, we need to ensure that we let the context know that regardless of other events,
+        if self.continous_update {
+            self.egui_ctx.request_repaint();
+        }
+
         draw_fn(&mut self.egui_ctx);
 
         // Render GUI
-        let (_output, shapes) = self.egui_ctx.end_frame();
-
+        let (output, shapes) = self.egui_ctx.end_frame();
+        
         // Each frame, we set the mouse_was_captured flag so that we know whether egui should be
         // consuming mouse events or not. This may introduce a one-frame lag in capturing input, but in practice it
         // shouldn't be an issue.
         self.mouse_was_captured = self.egui_ctx.is_using_pointer();
 
-        let clipped_meshes = self.egui_ctx.tessellate(shapes);
-        self.paint_shapes(owner, clipped_meshes, &self.egui_ctx.texture());
+        if output.needs_repaint {
+            let clipped_meshes = self.egui_ctx.tessellate(shapes);
+            self.paint_shapes(owner, clipped_meshes, &self.egui_ctx.texture());
+        }
     }
 
     /// Call this to draw a new frame using a closure taking an `egui::Ui` parameter. Prefer this over
