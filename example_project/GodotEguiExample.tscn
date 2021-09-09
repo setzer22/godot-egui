@@ -23,6 +23,7 @@ __meta__ = {
 "_edit_use_anchors_": false
 }
 theme = ExtResource( 3 )
+scroll_speed = 20.0
+continous_update = true
 consume_mouse_events = true
 disable_texture_filtering = false
-scroll_speed = 20.0

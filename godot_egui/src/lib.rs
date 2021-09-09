@@ -313,7 +313,13 @@ impl GodotEgui {
         }
     }
     /// Requests that the UI is refreshed from EGUI.
-    /// This function should only be used when `continuous_update` is false and the GUI needs to be updated (such as due to the model being updated).
+    /// Has no effect when `continous_update` is enabled.
+    /// ## Usage Note
+    ///
+    /// This should only be necessary when you have a `reactive_update` GUI that needs to respond only to changes that occur
+    /// asynchronously (such as via signals) and very rarely such as a static HUD.
+    ///
+    /// If the UI should be updated almost every frame due to animations or constant changes with data, favor setting `continous_update` to true instead. 
     #[export]
     fn refresh(&self, _owner: TRef<Control>) {
         self.egui_ctx.request_repaint();
@@ -328,14 +334,15 @@ impl GodotEgui {
 
         self.egui_ctx.begin_frame(raw_input);
 
-        // Each frame of a continous update, we need to ensure that we let the context know that regardless of other events,
+        // When using continous update mode, it is necessary to manually request a repaint so that the gui
+        // will redraw itself regardless of whether or not it detects input events or animations.
         if self.continous_update {
             self.egui_ctx.request_repaint();
         }
 
         draw_fn(&mut self.egui_ctx);
 
-        // Render GUI
+        // Complete the frame and return the shapes and output
         let (output, shapes) = self.egui_ctx.end_frame();
         
         // Each frame, we set the mouse_was_captured flag so that we know whether egui should be
@@ -343,6 +350,8 @@ impl GodotEgui {
         // shouldn't be an issue.
         self.mouse_was_captured = self.egui_ctx.is_using_pointer();
 
+        // `egui_ctx` will use all the layout code to determine if there are any changes.
+        // `output.needs_repaint` lets `GodotEgui` know whether we need to redraw the clipped mesh and repaint the new texture or not.
         if output.needs_repaint {
             let clipped_meshes = self.egui_ctx.tessellate(shapes);
             self.paint_shapes(owner, clipped_meshes, &self.egui_ctx.texture());
