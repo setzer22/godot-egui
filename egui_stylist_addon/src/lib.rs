@@ -1,12 +1,10 @@
 use gdnative::prelude::*;
 
-mod importer;
 mod stylist;
-pub use importer::GodotEguiThemeImporter;
 pub use stylist::GodotEguiStylist;
+
 fn init(handle: InitHandle) {
     handle.add_tool_class::<GodotEguiStylist>();
-    handle.add_tool_class::<GodotEguiThemeImporter>();
     godot_egui::register_classes_as_tool(handle);
 }
 

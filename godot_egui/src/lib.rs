@@ -5,6 +5,7 @@ use gdnative::api::{
     File, GlobalConstants, ImageTexture, InputEventMouseButton, InputEventMouseMotion, VisualServer,
 };
 
+use gdnative::nativescript::property::EnumHint;
 use gdnative::prelude::*;
 
 /// Contains conversion tables between Godot and egui input constants (keys, mouse buttons)
@@ -12,8 +13,6 @@ pub(crate) mod enum_conversions;
 
 /// Some helper functions and traits for godot-egui
 pub mod egui_helpers;
-mod theme;
-pub use theme::GodotEguiTheme;
 
 /// Converts an egui color into a godot color
 pub fn egui2color(c: egui::Color32) -> Color {
@@ -54,6 +53,7 @@ struct SyncedTexture {
 /// The `update` or `update_ctx` methods can be used to draw a new frame.
 #[derive(NativeClass)]
 #[inherit(gdnative::api::Control)]
+#[register_with(Self::register_properties)]
 pub struct GodotEgui {
     pub egui_ctx: egui::CtxRef,
     meshes: Vec<VisualServerMesh>,
@@ -72,13 +72,23 @@ pub struct GodotEgui {
     /// When enabled, no texture filtering will be performed. Useful for a pixel-art style.
     #[property]
     disable_texture_filtering: bool,
-    #[property]
-    theme: Option<Ref<gdnative::api::Resource>>,
+    /// The theme resource that this GodotEgui control will use.
+    theme_path: String,
 }
 
 
 #[gdnative::methods]
 impl GodotEgui {
+    fn register_properties(builder: &ClassBuilder<GodotEgui>) {
+        use gdnative::nativescript::property::StringHint;
+        builder
+            .add_property::<String>("EguiTheme")
+            .with_getter(move |egui: &GodotEgui, _| egui.theme_path.clone())
+            .with_setter(move |egui: &mut GodotEgui, _, new_val| egui.theme_path = new_val)
+            .with_default("".to_owned())
+            .with_hint(StringHint::File(EnumHint::new(vec!["*.ron".to_owned(), "*.eguitheme".to_owned()])))
+            .done();
+    }
     /// Constructs a new egui node
     pub fn new(_owner: TRef<Control>) -> GodotEgui {
         GodotEgui {
@@ -93,7 +103,7 @@ impl GodotEgui {
             scroll_speed: 20.0,
             consume_mouse_events: true,
             disable_texture_filtering: false,
-            theme: None,
+            theme_path: "".to_owned(),
         }
     }
 
@@ -101,23 +111,33 @@ impl GodotEgui {
     /// custom fonts defined as properties
     #[export]
     fn _ready(&mut self, _owner: TRef<Control>) {
+        
         // Run a single dummy frame to ensure the fonts are created, otherwise egui panics
         self.egui_ctx.begin_frame(egui::RawInput::default());
         let _ = self.egui_ctx.end_frame();
-
-        if let Some(theme) = self.theme.as_ref() {
-            if let Some(theme) = theme.clone().cast_instance::<GodotEguiTheme>() {
-                let theme = unsafe { theme.assume_safe() };
-                if let Some(egui_theme) = theme.map(|t, _| t.get_theme()).expect("this should work") {
-                    let (style, font_definitions) = egui_theme.extract();
-                    self.egui_ctx.set_style(style);
-                    self.egui_ctx.set_fonts(font_definitions);
-                } else {
-                    godot_error!("Could not load the theme")
+        let file = File::new();
+        if file.file_exists(self.theme_path.as_str()) {
+            match file.open(self.theme_path.as_str(), File::READ) {
+                Ok(_) => {
+                    let file_data = file.get_as_text();
+                    match ron::from_str::<egui_theme::EguiTheme>(file_data.to_string().as_str()) {
+                        Ok(theme) => {
+                            let (style, font_definitions) = theme.extract();
+                            self.egui_ctx.set_style(style);
+                            self.egui_ctx.set_fonts(font_definitions);
+                        },
+                        Err(err) => {
+                            godot_error!("Theme could not be deserialized due to: {:#?}", err);
+                        }
+                    }
+                    
+                },
+                Err(error) => {
+                    godot_error!("{}", error);
                 }
-            } else {
-                godot_error!("this should cast to `GodotEguiTheme`");
             }
+        } else {
+            godot_error!("file {} does not exist", &self.theme_path)
         }
     }
 
@@ -358,7 +378,6 @@ impl GodotEgui {
 /// This method should not be used in any library where `register_classes_as_tool` is run. Doing so may result in `gdnative` errors.
 pub fn register_classes(handle: InitHandle) {
     handle.add_class::<GodotEgui>();
-    handle.add_class::<GodotEguiTheme>();
 }
 
 /// Helper method that registers all GodotEgui `NativeClass` objects as tool scripts. This should **only** be used when GodotEgui is to be run inside the Godot editor.
@@ -366,5 +385,4 @@ pub fn register_classes(handle: InitHandle) {
 /// This method should not be used in any library where `register_classes` is run. Doing so may result in `gdnative` errors.
 pub fn register_classes_as_tool(handle: InitHandle) {
     handle.add_tool_class::<GodotEgui>();
-    handle.add_tool_class::<GodotEguiTheme>();
 }

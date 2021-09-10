@@ -3,8 +3,6 @@ use gdnative::api::{FileDialog};
 use gdnative::prelude::*;
 use godot_egui::GodotEgui;
 
-use godot_egui::GodotEguiTheme;
-
 #[derive(NativeClass)]
 #[inherit(Control)]
 pub struct GodotEguiStylist {
@@ -157,23 +155,11 @@ fn read_file(filepath: &str) -> String {
 }
 
 pub fn load_theme(path: GodotString) -> egui_theme::EguiTheme {
-    use std::path::Path;
     // Load the GodotEguiTheme via the ResourceLoader and then extract the EguiTheme
     let file_path = path.to_string();
-    let path = Path::new(&file_path);
-    let is_godot_resource =
-        if let Some(ext) = path.extension() { ext.eq("tres") || ext.eq("tres") } else { false };
+    
     // We should allow for both godot resources as well as the vanilla .ron files to be published.
-    let theme = if is_godot_resource {
-        let loader = ResourceLoader::godot_singleton();
-        let rsrc = loader.load(file_path, "", false).expect("this should be a valid path");
-        let rsrc = unsafe { rsrc.assume_safe() }
-            .cast::<gdnative::api::Resource>()
-            .expect("this should be a resource file");
-        let rsrc = rsrc.cast_instance::<GodotEguiTheme>().expect("this should be a `GodotEguiTheme`");
-        rsrc.map(|theme, _| ron::from_str(&theme.serialized_theme).expect("this should load"))
-            .expect("there should be no error")
-    } else {
+    let theme = {
         let file = read_file(&file_path);
         ron::from_str(&file).expect("this should load")
     };
