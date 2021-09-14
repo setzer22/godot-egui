@@ -1,3 +1,4 @@
+use egui::ComboBox;
 use gdnative::prelude::*;
 use godot_egui::GodotEgui;
 
@@ -13,11 +14,18 @@ pub struct GodotEguiExample {
     elapsed_time: f64,
     counter: usize,
     checkbox: bool,
+    combox_box_value: i32,
+    slider_value: f32,
     icon_1: Ref<Texture>,
     icon_2: Ref<Texture>,
     use_custom_fonts: bool,
     show_font_settings: bool,
     text_edit_text: String,
+
+    /// Demonstrates actively manipulating the pixels_per_point setting for `egui`
+    /// # Warning: This setting is very performance intensive and for demonstration purposes only.
+    #[property(default = false)]
+    dynamically_change_pixels_per_point: bool,
 }
 
 #[gdnative::methods]
@@ -27,12 +35,15 @@ impl GodotEguiExample {
             gui: None,
             counter: 0,
             checkbox: false,
+            combox_box_value: 0,
+            slider_value: 1f32,
             elapsed_time: 0.0,
             icon_1: load_texture("res://icon.png"),
             icon_2: load_texture("res://icon_ferris.png"),
             use_custom_fonts: false,
             show_font_settings: false,
             text_edit_text: "This is a text edit!".to_owned(),
+            dynamically_change_pixels_per_point: false,
         }
     }
 
@@ -68,6 +79,7 @@ impl GodotEguiExample {
 
         self.elapsed_time += delta;
 
+        
         // A frame can be passed to `update` specifying background color, margin and other properties
         // You may also want to pass in `None` and draw a background using a regular Panel node instead.
         let frame = egui::Frame { margin: egui::vec2(20.0, 20.0), ..Default::default() };
@@ -75,22 +87,25 @@ impl GodotEguiExample {
         let mut should_reverse_font_priorities = false;
 
         gui.map_mut(|gui, instance| {
+            // This resizes the window each frame based on a sine wave
+            if self.dynamically_change_pixels_per_point {
+                gui.set_pixels_per_point(instance, (self.elapsed_time.sin() * 0.20) + 0.8);
+            }
+            
             // We use the `update` method here to just draw a simple UI on the central panel. If you need more
             // fine-grained control, you can use update_ctx to get access to egui's context directly.
             gui.update_ctx(instance, /* Some(frame), */ |ctx| {
+
                 egui::CentralPanel::default().frame(frame).show(ctx, |ui| {
                     ui.columns(2, |columns| {
                         let ui = &mut columns[0];
-
                         ui.heading("Godot Egui - Example app");
-
                         ui.add_space(5.0);
 
                         if ui.button("Press me to increase counter!").clicked() {
                             self.counter += 1;
                         }
                         ui.label(format!("Count is: {}", self.counter));
-
                         ui.add_space(5.0);
 
                         ui.horizontal(|ui| {
@@ -101,7 +116,6 @@ impl GodotEguiExample {
                                 ui.label("Unfortunately, it is not.");
                             }
                         });
-
                         ui.add_space(5.0);
 
                         ui.heading("You can even plot graphs");
@@ -146,16 +160,28 @@ impl GodotEguiExample {
                             should_reverse_font_priorities = true;
                         }
 
+                        ComboBox::from_label("This is a combo box")
+                            .selected_text(format!("{}", self.combox_box_value))
+                            .show_ui(ui, |ui| {
+                                ui.selectable_value(&mut self.combox_box_value, 0, "0");
+                                ui.selectable_value(&mut self.combox_box_value, 1, "1");
+                                ui.selectable_value(&mut self.combox_box_value, 2, "2");
+                                ui.selectable_value(&mut self.combox_box_value, 3, "3");
+                            });
+
+                        ui.add_space(5.0);
+                        ui.label("Set the value with the slider");
+                        ui.add(egui::Slider::new(&mut self.slider_value, 0.0..=100.0).text("value"));
                         ui.add_space(5.0);
 
                         ui.heading("Icon fonts  \u{f02d}");
                         ui.add_space(5.0);
+
                         ui.label(
                             "By loading icon fonts, such as Fontawesome, you can easily draw small icons. Icon \
                              fonts typically use private codepoints, so there's no need to worry about \
                              priorities:\n\n \u{f091} \u{f0f3} \u{f241} \u{f0e7} \u{f0fc}",
                         );
-
                         ui.add_space(5.0);
 
                         ui.horizontal(|ui| {
