@@ -5,7 +5,7 @@ use gdnative::api::{
     File, GlobalConstants, ImageTexture, InputEventMouseButton, InputEventMouseMotion, VisualServer,
 };
 
-use gdnative::nativescript::property::EnumHint;
+use gdnative::nativescript::property::{EnumHint, FloatHint, RangeHint};
 use gdnative::prelude::*;
 
 /// Contains conversion tables between Godot and egui input constants (keys, mouse buttons)
@@ -72,10 +72,11 @@ pub struct GodotEgui {
     /// When enabled, no texture filtering will be performed. Useful for a pixel-art style.
     #[property]
     disable_texture_filtering: bool,
+    /// Pixels per point controls the render scale of the objects in egui.
+    pixels_per_point: f64,
     /// The theme resource that this GodotEgui control will use.
     theme_path: String,
 }
-
 
 #[gdnative::methods]
 impl GodotEgui {
@@ -87,6 +88,13 @@ impl GodotEgui {
             .with_setter(move |egui: &mut GodotEgui, _, new_val| egui.theme_path = new_val)
             .with_default("".to_owned())
             .with_hint(StringHint::File(EnumHint::new(vec!["*.ron".to_owned(), "*.eguitheme".to_owned()])))
+            .done();
+        builder
+            .add_property::<f64>("pixels_per_point")
+            .with_getter(move |egui: &GodotEgui, _| egui.pixels_per_point)
+            .with_setter(move |egui: &mut GodotEgui, _, new_value| egui.pixels_per_point = new_value)
+            .with_default(1.0)
+            .with_hint(FloatHint::Range(RangeHint::new(0.01, 16.0).with_step(0.01)))
             .done();
     }
     /// Constructs a new egui node
@@ -103,17 +111,26 @@ impl GodotEgui {
             scroll_speed: 20.0,
             consume_mouse_events: true,
             disable_texture_filtering: false,
+            pixels_per_point: 1f64,
             theme_path: "".to_owned(),
         }
     }
-
+    #[export]
+    pub fn set_pixels_per_point(&mut self, _owner: TRef<Control>, pixels_per_point: f64) {
+        if pixels_per_point > 0f64 {
+            self.pixels_per_point = pixels_per_point;
+            self.egui_ctx.set_pixels_per_point(self.pixels_per_point as f32);
+        } else {
+            godot_error!("pixels per point must be greater than 0");
+        }
+    }
     /// Run when this node is added to the scene tree. Runs some initialization logic, like registering any
     /// custom fonts defined as properties
     #[export]
     fn _ready(&mut self, _owner: TRef<Control>) {
-        
         // Run a single dummy frame to ensure the fonts are created, otherwise egui panics
         self.egui_ctx.begin_frame(egui::RawInput::default());
+        self.egui_ctx.set_pixels_per_point(self.pixels_per_point as f32);
         let _ = self.egui_ctx.end_frame();
         let file = File::new();
         if file.file_exists(self.theme_path.as_str()) {
@@ -125,13 +142,12 @@ impl GodotEgui {
                             let (style, font_definitions) = theme.extract();
                             self.egui_ctx.set_style(style);
                             self.egui_ctx.set_fonts(font_definitions);
-                        },
+                        }
                         Err(err) => {
                             godot_error!("Theme could not be deserialized due to: {:#?}", err);
                         }
                     }
-                    
-                },
+                }
                 Err(error) => {
                     godot_error!("{}", error);
                 }
@@ -152,12 +168,15 @@ impl GodotEgui {
     fn _input(&mut self, owner: TRef<Control>, event: Ref<InputEvent>) {
         let event = unsafe { event.assume_safe() };
         let mut raw_input = self.raw_input.borrow_mut();
-
+        let pixels_per_point = self.egui_ctx.pixels_per_point();
         // Transforms mouse positions in viewport coordinates to egui coordinates.
-        // NOTE: The egui is painted inside a control node, so its global rect offset must be taken into account
         let mouse_pos_to_egui = |mouse_pos: Vector2| {
+            // NOTE: The egui is painted inside a control node, so its global rect offset must be taken into account
             let transformed_pos = mouse_pos - owner.get_global_rect().origin.to_vector();
-            egui::Pos2 { x: transformed_pos.x, y: transformed_pos.y }
+            // It is necessary to translate the mouse position which refers to physical pixel position to egui's logical points
+            // This is found using the inverse of current `pixels_per_point` setting.
+            let points_per_pixel = 1.0 / pixels_per_point;
+            egui::Pos2 { x: transformed_pos.x * points_per_pixel, y: transformed_pos.y * points_per_pixel }
         };
 
         if let Some(motion_ev) = event.cast::<InputEventMouseMotion>() {
@@ -212,9 +231,10 @@ impl GodotEgui {
     }
 
     /// Paints a list of `egui::ClippedMesh` using the `VisualServer`
-    fn paint_shapes(
-        &mut self, owner: TRef<Control>, clipped_meshes: Vec<egui::ClippedMesh>, egui_texture: &egui::Texture,
-    ) {
+    fn paint_shapes(&mut self, owner: TRef<Control>, clipped_meshes: Vec<egui::ClippedMesh>) {
+        let pixels_per_point = self.egui_ctx.pixels_per_point();
+        let egui_texture = &self.egui_ctx.texture();
+
         let vs = unsafe { VisualServer::godot_singleton() };
 
         // Sync egui's texture to our Godot texture, only when needed
@@ -270,7 +290,7 @@ impl GodotEgui {
         );
 
         // Paint the meshes
-        for (egui::ClippedMesh(clip_rect, mesh), vs_mesh) in clipped_meshes.into_iter().zip(self.meshes.iter_mut())
+        for (egui::ClippedMesh(_clip_rect, mesh), vs_mesh) in clipped_meshes.into_iter().zip(self.meshes.iter_mut())
         {
             // Skip the mesh if empty, but clear the mesh if it previously existed
             if mesh.vertices.is_empty() {
@@ -314,14 +334,9 @@ impl GodotEgui {
                 false,
             );
 
-            vs.canvas_item_set_clip(vs_mesh.canvas_item, true);
-            vs.canvas_item_set_custom_rect(
+            vs.canvas_item_set_transform(
                 vs_mesh.canvas_item,
-                true,
-                Rect2 {
-                    origin: Point2::new(clip_rect.min.x, clip_rect.min.y),
-                    size: Size2::new(clip_rect.max.x - clip_rect.min.x, clip_rect.max.y - clip_rect.min.y),
-                },
+                Transform2D::new(pixels_per_point, 0.0, 0.0, pixels_per_point, 0.0, 0.0),
             );
         }
     }
@@ -347,7 +362,7 @@ impl GodotEgui {
         self.mouse_was_captured = self.egui_ctx.is_using_pointer();
 
         let clipped_meshes = self.egui_ctx.tessellate(shapes);
-        self.paint_shapes(owner, clipped_meshes, &self.egui_ctx.texture());
+        self.paint_shapes(owner, clipped_meshes);
     }
 
     /// Call this to draw a new frame using a closure taking an `egui::Ui` parameter. Prefer this over
