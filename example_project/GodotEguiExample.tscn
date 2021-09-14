@@ -1,8 +1,7 @@
-[gd_scene load_steps=4 format=2]
+[gd_scene load_steps=3 format=2]
 
 [ext_resource path="res://GodotEgui.gdns" type="Script" id=1]
 [ext_resource path="res://GodotEguiExample.gdns" type="Script" id=2]
-[ext_resource path="res://godot-editor.tres" type="Resource" id=3]
 
 [node name="GodotEguiExample" type="Control"]
 anchor_right = 1.0
@@ -17,13 +16,12 @@ __meta__ = {
 [node name="GodotEgui" type="Control" parent="."]
 anchor_right = 1.0
 anchor_bottom = 1.0
-theme = ExtResource( 3 )
 script = ExtResource( 1 )
 __meta__ = {
 "_edit_use_anchors_": false
 }
-theme = ExtResource( 3 )
-scroll_speed = 20.0
 continous_update = true
 consume_mouse_events = true
 disable_texture_filtering = false
+scroll_speed = 20.0
+EguiTheme = "res://godot-editor.eguitheme"

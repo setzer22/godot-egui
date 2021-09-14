@@ -5,6 +5,7 @@ use gdnative::api::{
     File, GlobalConstants, ImageTexture, InputEventMouseButton, InputEventMouseMotion, VisualServer,
 };
 
+use gdnative::nativescript::property::{EnumHint, FloatHint, RangeHint};
 use gdnative::prelude::*;
 
 /// Contains conversion tables between Godot and egui input constants (keys, mouse buttons)
@@ -12,8 +13,6 @@ pub(crate) mod enum_conversions;
 
 /// Some helper functions and traits for godot-egui
 pub mod egui_helpers;
-mod theme;
-pub use theme::GodotEguiTheme;
 
 /// Converts an egui color into a godot color
 pub fn egui2color(c: egui::Color32) -> Color {
@@ -54,6 +53,7 @@ struct SyncedTexture {
 /// The `update` or `update_ctx` methods can be used to draw a new frame.
 #[derive(NativeClass)]
 #[inherit(gdnative::api::Control)]
+#[register_with(Self::register_properties)]
 pub struct GodotEgui {
     pub egui_ctx: egui::CtxRef,
     meshes: Vec<VisualServerMesh>,
@@ -77,13 +77,31 @@ pub struct GodotEgui {
     /// When enabled, no texture filtering will be performed. Useful for a pixel-art style.
     #[property]
     disable_texture_filtering: bool,
-    #[property]
-    theme: Option<Ref<gdnative::api::Resource>>,
+    /// Pixels per point controls the render scale of the objects in egui.
+    pixels_per_point: f64,
+    /// The theme resource that this GodotEgui control will use.
+    theme_path: String,
 }
-
 
 #[gdnative::methods]
 impl GodotEgui {
+    fn register_properties(builder: &ClassBuilder<GodotEgui>) {
+        use gdnative::nativescript::property::StringHint;
+        builder
+            .add_property::<String>("EguiTheme")
+            .with_getter(move |egui: &GodotEgui, _| egui.theme_path.clone())
+            .with_setter(move |egui: &mut GodotEgui, _, new_val| egui.theme_path = new_val)
+            .with_default("".to_owned())
+            .with_hint(StringHint::File(EnumHint::new(vec!["*.ron".to_owned(), "*.eguitheme".to_owned()])))
+            .done();
+        builder
+            .add_property::<f64>("pixels_per_point")
+            .with_getter(move |egui: &GodotEgui, _| egui.pixels_per_point)
+            .with_setter(move |egui: &mut GodotEgui, _, new_value| egui.pixels_per_point = new_value)
+            .with_default(1.0)
+            .with_hint(FloatHint::Range(RangeHint::new(0.01, 16.0).with_step(0.01)))
+            .done();
+    }
     /// Constructs a new egui node
     pub fn new(_owner: TRef<Control>) -> GodotEgui {
         GodotEgui {
@@ -99,10 +117,19 @@ impl GodotEgui {
             scroll_speed: 20.0,
             consume_mouse_events: true,
             disable_texture_filtering: false,
-            theme: None,
+            pixels_per_point: 1f64,
+            theme_path: "".to_owned(),
         }
     }
-
+    #[export]
+    pub fn set_pixels_per_point(&mut self, _owner: TRef<Control>, pixels_per_point: f64) {
+        if pixels_per_point > 0f64 {
+            self.pixels_per_point = pixels_per_point;
+            self.egui_ctx.set_pixels_per_point(self.pixels_per_point as f32);
+        } else {
+            godot_error!("pixels per point must be greater than 0");
+        }
+    }
 
     /// Run when this node is added to the scene tree. Runs some initialization logic, like registering any
     /// custom fonts defined as properties
@@ -110,21 +137,30 @@ impl GodotEgui {
     fn _ready(&mut self, _owner: TRef<Control>) {
         // Run a single dummy frame to ensure the fonts are created, otherwise egui panics
         self.egui_ctx.begin_frame(egui::RawInput::default());
+        self.egui_ctx.set_pixels_per_point(self.pixels_per_point as f32);
         let _ = self.egui_ctx.end_frame();
-
-        if let Some(theme) = self.theme.as_ref() {
-            if let Some(theme) = theme.clone().cast_instance::<GodotEguiTheme>() {
-                let theme = unsafe { theme.assume_safe() };
-                if let Some(egui_theme) = theme.map(|t, _| t.get_theme()).expect("this should work") {
-                    let (style, font_definitions) = egui_theme.extract();
-                    self.egui_ctx.set_style(style);
-                    self.egui_ctx.set_fonts(font_definitions);
-                } else {
-                    godot_error!("Could not load the theme")
+        let file = File::new();
+        if file.file_exists(self.theme_path.as_str()) {
+            match file.open(self.theme_path.as_str(), File::READ) {
+                Ok(_) => {
+                    let file_data = file.get_as_text();
+                    match ron::from_str::<egui_theme::EguiTheme>(file_data.to_string().as_str()) {
+                        Ok(theme) => {
+                            let (style, font_definitions) = theme.extract();
+                            self.egui_ctx.set_style(style);
+                            self.egui_ctx.set_fonts(font_definitions);
+                        }
+                        Err(err) => {
+                            godot_error!("Theme could not be deserialized due to: {:#?}", err);
+                        }
+                    }
                 }
-            } else {
-                godot_error!("this should cast to `GodotEguiTheme`");
+                Err(error) => {
+                    godot_error!("{}", error);
+                }
             }
+        } else {
+            godot_error!("file {} does not exist", &self.theme_path)
         }
     }
 
@@ -139,12 +175,15 @@ impl GodotEgui {
     fn _input(&mut self, owner: TRef<Control>, event: Ref<InputEvent>) {
         let event = unsafe { event.assume_safe() };
         let mut raw_input = self.raw_input.borrow_mut();
-
+        let pixels_per_point = self.egui_ctx.pixels_per_point();
         // Transforms mouse positions in viewport coordinates to egui coordinates.
-        // NOTE: The egui is painted inside a control node, so its global rect offset must be taken into account
         let mouse_pos_to_egui = |mouse_pos: Vector2| {
+            // NOTE: The egui is painted inside a control node, so its global rect offset must be taken into account
             let transformed_pos = mouse_pos - owner.get_global_rect().origin.to_vector();
-            egui::Pos2 { x: transformed_pos.x, y: transformed_pos.y }
+            // It is necessary to translate the mouse position which refers to physical pixel position to egui's logical points
+            // This is found using the inverse of current `pixels_per_point` setting.
+            let points_per_pixel = 1.0 / pixels_per_point;
+            egui::Pos2 { x: transformed_pos.x * points_per_pixel, y: transformed_pos.y * points_per_pixel }
         };
 
         if let Some(motion_ev) = event.cast::<InputEventMouseMotion>() {
@@ -199,9 +238,10 @@ impl GodotEgui {
     }
 
     /// Paints a list of `egui::ClippedMesh` using the `VisualServer`
-    fn paint_shapes(
-        &mut self, owner: TRef<Control>, clipped_meshes: Vec<egui::ClippedMesh>, egui_texture: &egui::Texture,
-    ) {
+    fn paint_shapes(&mut self, owner: TRef<Control>, clipped_meshes: Vec<egui::ClippedMesh>) {
+        let pixels_per_point = self.egui_ctx.pixels_per_point();
+        let egui_texture = &self.egui_ctx.texture();
+
         let vs = unsafe { VisualServer::godot_singleton() };
 
         // Sync egui's texture to our Godot texture, only when needed
@@ -257,7 +297,7 @@ impl GodotEgui {
         );
 
         // Paint the meshes
-        for (egui::ClippedMesh(clip_rect, mesh), vs_mesh) in clipped_meshes.into_iter().zip(self.meshes.iter_mut())
+        for (egui::ClippedMesh(_clip_rect, mesh), vs_mesh) in clipped_meshes.into_iter().zip(self.meshes.iter_mut())
         {
             // Skip the mesh if empty, but clear the mesh if it previously existed
             if mesh.vertices.is_empty() {
@@ -301,14 +341,9 @@ impl GodotEgui {
                 false,
             );
 
-            vs.canvas_item_set_clip(vs_mesh.canvas_item, true);
-            vs.canvas_item_set_custom_rect(
+            vs.canvas_item_set_transform(
                 vs_mesh.canvas_item,
-                true,
-                Rect2 {
-                    origin: Point2::new(clip_rect.min.x, clip_rect.min.y),
-                    size: Size2::new(clip_rect.max.x - clip_rect.min.x, clip_rect.max.y - clip_rect.min.y),
-                },
+                Transform2D::new(pixels_per_point, 0.0, 0.0, pixels_per_point, 0.0, 0.0),
             );
         }
     }
@@ -386,7 +421,6 @@ impl GodotEgui {
 /// This method should not be used in any library where `register_classes_as_tool` is run. Doing so may result in `gdnative` errors.
 pub fn register_classes(handle: InitHandle) {
     handle.add_class::<GodotEgui>();
-    handle.add_class::<GodotEguiTheme>();
 }
 
 /// Helper method that registers all GodotEgui `NativeClass` objects as tool scripts. This should **only** be used when GodotEgui is to be run inside the Godot editor.
@@ -394,5 +428,4 @@ pub fn register_classes(handle: InitHandle) {
 /// This method should not be used in any library where `register_classes` is run. Doing so may result in `gdnative` errors.
 pub fn register_classes_as_tool(handle: InitHandle) {
     handle.add_tool_class::<GodotEgui>();
-    handle.add_tool_class::<GodotEguiTheme>();
 }
