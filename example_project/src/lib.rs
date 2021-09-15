@@ -4,6 +4,8 @@ use godot_egui::{GodotEgui, ext::InputMapExt};
 mod window;
 use window::GodotEguiWindowExample;
 
+mod color_test;
+mod egui_demo;
 pub fn load_texture(path: &str) -> Ref<Texture> {
     let loader = ResourceLoader::godot_singleton();
     loader.load(path, "Texture", false).expect("Texture found").cast().expect("Is texture")
@@ -269,6 +271,8 @@ impl GodotEguiExample {
 fn init(handle: InitHandle) {
     handle.add_class::<GodotEguiExample>();
     handle.add_class::<GodotEguiWindowExample>();
+    handle.add_class::<color_test::GodotEguiColorTest>();
+    handle.add_class::<egui_demo::GodotEguiDemoLib>();
     godot_egui::register_classes(handle);
 }
 

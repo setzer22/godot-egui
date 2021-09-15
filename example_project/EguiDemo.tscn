@@ -1,9 +1,9 @@
 [gd_scene load_steps=3 format=2]
 
 [ext_resource path="res://GodotEgui.gdns" type="Script" id=1]
-[ext_resource path="res://GodotEguiWindowExample.gdns" type="Script" id=2]
+[ext_resource path="res://EguiDemo.gdns" type="Script" id=2]
 
-[node name="GodotEguiWindowExample" type="Control"]
+[node name="EguiDemo" type="Control"]
 anchor_right = 1.0
 anchor_bottom = 1.0
 script = ExtResource( 2 )
@@ -14,6 +14,5 @@ __meta__ = {
 [node name="GodotEgui" type="Control" parent="."]
 anchor_right = 1.0
 anchor_bottom = 1.0
-mouse_filter = 1
 script = ExtResource( 1 )
 input_mode = 2
