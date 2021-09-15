@@ -389,7 +389,7 @@ impl GodotEgui {
         // `output.needs_repaint` lets `GodotEgui` know whether we need to redraw the clipped mesh and repaint the new texture or not.
         if output.needs_repaint {
             let clipped_meshes = self.egui_ctx.tessellate(shapes);
-            self.paint_shapes(owner, clipped_meshes, &self.egui_ctx.texture());
+            self.paint_shapes(owner, clipped_meshes);
         }
     }
 
