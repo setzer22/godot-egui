@@ -96,7 +96,8 @@ impl GodotEguiExample {
                 // Set the input as handled by the viewport if the gui believes that is has been captured.
                 unsafe { owner.get_viewport().expect("Viewport").assume_safe().set_input_as_handled() };
             }
-        }).expect("map_mut should succeed");
+        })
+        .expect("map_mut should succeed");
     }
 
     /// Updates egui from the `_gui_input` callback
@@ -109,7 +110,8 @@ impl GodotEguiExample {
             if gui.mouse_was_captured(instance) {
                 owner.accept_event();
             }
-        }).expect("map_mut should succeed");
+        })
+        .expect("map_mut should succeed");
     }
     #[export]
     #[gdnative::profiled]
@@ -117,7 +119,7 @@ impl GodotEguiExample {
         let gui = unsafe { self.gui.as_ref().expect("GUI initialized").assume_safe() };
 
         self.elapsed_time += delta;
-        
+
         // A frame can be passed to `update` specifying background color, margin and other properties
         // You may also want to pass in `None` and draw a background using a regular Panel node instead.
         let frame = egui::Frame { margin: egui::vec2(20.0, 20.0), ..Default::default() };
@@ -129,11 +131,10 @@ impl GodotEguiExample {
             if self.dynamically_change_pixels_per_point {
                 gui.set_pixels_per_point(instance, (self.elapsed_time.sin() * 0.20) + 0.8);
             }
-            
+
             // We use the `update` method here to just draw a simple UI on the central panel. If you need more
             // fine-grained control, you can use update_ctx to get access to egui's context directly.
             gui.update_ctx(instance, /* Some(frame), */ |ctx| {
-
                 egui::CentralPanel::default().frame(frame).show(ctx, |ui| {
                     ui.columns(2, |columns| {
                         let ui = &mut columns[0];

@@ -22,6 +22,8 @@ Godot has a perfectly valid GUI system, so why `egui`? Here are my personal reas
 
 These are minimal usage instructions. See the example project in `./example_project/` for a more advanced project.
 
+### Configuration
+
 First, import the `godot_egui` crate as a library in your project.
 
 _Cargo.toml_
@@ -56,6 +58,65 @@ resource_name = "GodotEgui"
 class_name = "GodotEgui"
 library = ExtResource( 1 )
 ```
+
+### Retreving Godot Input
+
+In order to handle input, `GodotEgui` exposes the `handle_godot_input` and `mouse_was_captured` functions that can be used to pass input events from your node into `GodotEgui`.
+
+To handle input from `_input` or `_unhandled_input` use the following:
+
+```rust
+#[export]
+// fn _unhandled_input(&mut self, owner: TRef<Control>, event: Ref<InputEvent>) also works.
+fn _input(&mut self, owner: TRef<Control>, event: Ref<InputEvent>) {
+    let gui = unsafe { self.gui.as_ref().expect("GUI initialized").assume_safe() };
+    gui.map_mut(|gui, instance| {
+        gui.handle_godot_input(instance, event, false);
+        if gui.mouse_was_captured(instance) {
+            // Set the input as handled by the viewport if the gui believes that is has been captured.
+            unsafe { owner.get_viewport().expect("Viewport").assume_safe().set_input_as_handled() };
+        }
+    }).expect("map_mut should succeed");
+}
+
+```
+
+To handle input from `_gui_input` use the following:
+
+```rust
+#[export]
+fn _gui_input(&mut self, owner: TRef<Control>, event: Ref<InputEvent>) {
+    let gui = unsafe { self.gui.as_ref().expect("GUI initialized").assume_safe() };
+    gui.map_mut(|gui, instance| {
+        gui.handle_godot_input(instance, event, true);
+        if gui.mouse_was_captured(instance) {
+            // `_gui_input` uses accept_event() to stop the propagation of events.
+            owner.accept_event();
+        }
+    }).expect("map_mut should succeed");
+}
+```
+
+### Important
+
+`GodotEgui` translates the infomration from Godot's [`InputEvent`](https://docs.godotengine.org/en/stable/classes/class_inputevent.html#class-inputevent) class into the input format that `egui` expects. `GodotEgui` does not make any assumptions about how or when this data is input, it only translates and forwards the information to `egui`.
+
+When determining how to handle the events, please refer to Godot's input propagation rules (see [the official documentation](https://docs.godotengine.org/en/stable/tutorials/inputs/inputevent.html) for more details), this cannot be easily translated perfectly for every architecture. As such, it is 
+
+
+**Note**: Regarding using `_gui_input` with `GodotEgui`. You will need to ensure that you are properly configuring `Control.mouse_filter` and that you understand how this works with `egui`.
+
+- `Control::MOUSE_FILTER_STOP` - Consumes all input events. and it will not propagate up.
+- `Control::MOUSE_FILTER_PASS` - Consumes all input events., but will allow unhandled events to propagate to the parent node.
+- `Control::MOUSE_FILTER_IGNORE` - Does not consume input events.
+
+**Note regarding `Control::MOUSE_FILTER_PASS`**:
+
+The Godot engine assumption appears to be that most Controls that accept input will not overlap with other sibling nodes. As each `GodotEgui` constitutes it's own `egui::Context` (i.e. application), it will need to process any events that occur inside the `Control.rect.size`. This can lead to scenarios where input may be expected to propagate (i.e. `egui` does not detect that the mouse position overlaps any `egui::Widget` types) but does not.
+
+The only current workaround is show in the [GodotEguiWindowExample](example_project/GodotEguiWindowExample.tscn) where UIs are parented to eachother in the order or priority they should response to the events.
+
+### Drawing the `egui::Ui`
 
 Finally, get a reference to that node as a `RefInstance<GodotEgui, Shared>` in your code and do this to draw the GUI using:
 

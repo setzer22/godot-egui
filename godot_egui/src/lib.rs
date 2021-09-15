@@ -118,6 +118,8 @@ impl GodotEgui {
             theme_path: "".to_owned(),
         }
     }
+
+    /// Set the pixels_per_point use by `egui` to render the screen. This should be used to scale the `egui` nodes if you are using a non-standard scale for nodes in your game.
     #[export]
     pub fn set_pixels_per_point(&mut self, _owner: TRef<Control>, pixels_per_point: f64) {
         if pixels_per_point > 0f64 {
@@ -167,13 +169,13 @@ impl GodotEgui {
             }
         }
     }
-    
+
     /// Is used to indicate if the mouse was captured during the previous frame.
     #[export]
     pub fn mouse_was_captured(&self, _owner: TRef<Control>) -> bool {
         self.mouse_was_captured
     }
-    /// Call from the user code to pass the input event into `Egui`. 
+    /// Call from the user code to pass the input event into `Egui`.
     /// `event` should be the raw `InputEvent` that is handled by `_input`, `_gui_input` and `_unhandled_input`.
     /// `is_gui_input` should be true only if this event should be processed like it was emitted from the `_gui_input` callback.
     #[export]
@@ -190,7 +192,8 @@ impl GodotEgui {
                 // NOTE: The egui is painted inside a control node, so its global rect offset must be taken into account.
                 let offset_position = mouse_pos - owner.get_global_rect().origin.to_vector();
                 // This is used to get the correct rotation when the root node is rotated.
-                owner.get_global_transform()
+                owner
+                    .get_global_transform()
                     .inverse()
                     .expect("screen space coordinates must be invertible")
                     .transform_vector(offset_position)
