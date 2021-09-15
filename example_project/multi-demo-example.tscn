@@ -1,0 +1,21 @@
+[gd_scene load_steps=3 format=2]
+
+[ext_resource path="res://GodotEguiExample.tscn" type="PackedScene" id=1]
+[ext_resource path="res://GodotEguiWindowExample.tscn" type="PackedScene" id=2]
+
+[node name="multi-demo-example" type="Node2D"]
+
+[node name="GodotEguiExample" parent="." instance=ExtResource( 1 )]
+margin_right = 1024.0
+margin_bottom = 600.0
+mouse_filter = 1
+
+[node name="GodotEguiWindowExample" parent="GodotEguiExample" instance=ExtResource( 2 )]
+margin_right = 1024.0
+margin_bottom = 600.0
+mouse_filter = 1
+
+[node name="GodotEguiWindowExample2" parent="GodotEguiExample/GodotEguiWindowExample" instance=ExtResource( 2 )]
+margin_right = 1024.0
+margin_bottom = 600.0
+mouse_filter = 1
