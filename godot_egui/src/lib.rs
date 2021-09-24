@@ -60,6 +60,7 @@ pub struct GodotEgui {
     main_texture: SyncedTexture,
     raw_input: Rc<RefCell<egui::RawInput>>,
     mouse_was_captured: bool,
+    cursor_icon: egui::CursorIcon,
 
     /// This flag will force a UI to redraw every frame.
     /// This can be used for when the UI's backend events are always changing.
@@ -113,6 +114,7 @@ impl GodotEgui {
             },
             raw_input: Rc::new(RefCell::new(egui::RawInput::default())),
             mouse_was_captured: false,
+            cursor_icon: egui::CursorIcon::Default,
             continous_update: false,
             scroll_speed: 20.0,
             consume_mouse_events: true,
@@ -385,6 +387,11 @@ impl GodotEgui {
         // shouldn't be an issue.
         self.mouse_was_captured = self.egui_ctx.is_using_pointer();
 
+        // When we have a new cursor, we need to update the Godot side.
+        if self.cursor_icon != output.cursor_icon {
+            self.cursor_icon = output.cursor_icon;
+            owner.set_default_cursor_shape(enum_conversions::mouse_cursor_egui_to_godot(self.cursor_icon).0);
+        }
         // `egui_ctx` will use all the layout code to determine if there are any changes.
         // `output.needs_repaint` lets `GodotEgui` know whether we need to redraw the clipped mesh and repaint the new texture or not.
         if output.needs_repaint {
