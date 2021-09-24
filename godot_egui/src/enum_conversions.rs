@@ -1,4 +1,5 @@
 use gdnative::api::GlobalConstants;
+use gdnative::api::control::CursorShape;
 
 pub fn scancode_to_egui(scancode: i64) -> Option<egui::Key> {
     match scancode {
@@ -63,5 +64,36 @@ pub fn mouse_button_index_to_egui(button_index: i64) -> Option<egui::PointerButt
         GlobalConstants::BUTTON_RIGHT => Some(egui::PointerButton::Secondary),
         GlobalConstants::BUTTON_MIDDLE => Some(egui::PointerButton::Middle),
         _ => None,
+    }
+}
+
+/// Converts the `egui::CursorIcon` to a Godot `Control::CursorShape`
+pub fn mouse_cursor_egui_to_godot(cursor: egui::CursorIcon) -> CursorShape {
+    use egui::CursorIcon;
+    // Any missing egui::CursorIcon enum options use the default case if there is currently not
+    // an equivalent in Godot. 
+    match cursor {
+        CursorIcon::Default => CursorShape::ARROW,
+        CursorIcon::ContextMenu => CursorShape::ARROW,
+        CursorIcon::Help => CursorShape::HELP,
+        CursorIcon::PointingHand => CursorShape::POINTING_HAND,
+        CursorIcon::Progress => CursorShape::BUSY,
+        CursorIcon::Wait => CursorShape::WAIT,
+        CursorIcon::Cell => CursorShape::CROSS,
+        CursorIcon::Crosshair => CursorShape::CROSS,
+        CursorIcon::Text => CursorShape::IBEAM,
+        CursorIcon::VerticalText => CursorShape::IBEAM,
+        CursorIcon::Move => CursorShape::MOVE,
+        CursorIcon::NoDrop => CursorShape::FORBIDDEN,
+        CursorIcon::NotAllowed => CursorShape::FORBIDDEN,
+        CursorIcon::Grab => CursorShape::DRAG,
+        CursorIcon::Grabbing => CursorShape::DRAG,
+        CursorIcon::AllScroll => CursorShape::MOVE,
+        CursorIcon::ResizeHorizontal => CursorShape::HSIZE,
+        CursorIcon::ResizeNeSw => CursorShape::BDIAGSIZE,
+        CursorIcon::ResizeNwSe => CursorShape::FDIAGSIZE,
+        CursorIcon::ResizeVertical => CursorShape::VSIZE,
+        // The default case in Godot Engine is arrow.
+        _ => CursorShape::ARROW,
     }
 }
