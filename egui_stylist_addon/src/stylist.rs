@@ -1,4 +1,4 @@
-use egui_stylist::StylerState;
+use egui_stylist::StylistState;
 use gdnative::api::{FileDialog};
 use gdnative::prelude::*;
 use godot_egui::GodotEgui;
@@ -6,7 +6,7 @@ use godot_egui::GodotEgui;
 #[derive(NativeClass)]
 #[inherit(Control)]
 pub struct GodotEguiStylist {
-    style: StylerState,
+    style: StylistState,
     godot_egui: Option<Instance<GodotEgui, Shared>>,
     file_dialog: Option<Ref<FileDialog, Shared>>,
 }
@@ -14,7 +14,7 @@ pub struct GodotEguiStylist {
 #[methods]
 impl GodotEguiStylist {
     fn new(_: &Control) -> Self {
-        Self { style: StylerState::default(), godot_egui: None, file_dialog: None }
+        Self { style: StylistState::default(), godot_egui: None, file_dialog: None }
     }
     #[export]
     fn _ready(&mut self, owner: TRef<Control>) {
@@ -134,7 +134,7 @@ impl GodotEguiStylist {
                     ctx.set_fonts(font_definitions);
                 }
                 if ui.button("Clear settings").clicked() {
-                    self.style = StylerState::default();
+                    self.style = StylistState::default();
                     let ctx = ui.ctx();
                     ctx.set_fonts(egui::FontDefinitions::default());
                 }

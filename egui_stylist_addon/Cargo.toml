@@ -13,8 +13,8 @@ crate-type = ["cdylib"]
 gdnative = "0.9.3"
 egui = "0.14.2"
 godot_egui = { path = "../godot_egui" }
-egui-stylist = "0.0.4"
-egui-theme = "0.0.4"
+egui-stylist = "0.1.0"
+egui-theme = "0.1.0"
 ron = "0.6.4"
 anyhow = "1.0.43"
 serde = "1.0.130"
