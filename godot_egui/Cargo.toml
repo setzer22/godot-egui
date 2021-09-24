@@ -14,5 +14,5 @@ workspace = ".."
 [dependencies]
 gdnative = "0.9.3"
 egui = "0.14.2"
-egui-theme = "0.0.4"
+egui-theme = "0.1.0"
 ron = "0.6.4"
