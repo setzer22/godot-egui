@@ -376,9 +376,11 @@ impl GodotEgui {
     pub fn update_ctx(&mut self, owner: TRef<Control>, draw_fn: impl FnOnce(&mut egui::CtxRef)) {
         // Collect input
         let mut raw_input = self.raw_input.take();
+        // Ensure that the egui context fills the entire space of the node and is adjusted accordinglly.
         let size = owner.get_rect().size;
+        let points_per_pixel = (1.0 / self.pixels_per_point) as f32;
         raw_input.screen_rect =
-            Some(egui::Rect::from_min_size(Default::default(), egui::Vec2::new(size.width, size.height)));
+            Some(egui::Rect::from_min_size(Default::default(), egui::Vec2::new(size.width * points_per_pixel, size.height * points_per_pixel)));
 
         self.egui_ctx.begin_frame(raw_input);
 
