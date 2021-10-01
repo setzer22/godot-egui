@@ -139,28 +139,32 @@ impl GodotEgui {
         self.egui_ctx.begin_frame(egui::RawInput::default());
         self.egui_ctx.set_pixels_per_point(self.pixels_per_point as f32);
         let _ = self.egui_ctx.end_frame();
-        let file = File::new();
-        if file.file_exists(self.theme_path.as_str()) {
-            match file.open(self.theme_path.as_str(), File::READ) {
-                Ok(_) => {
-                    let file_data = file.get_as_text();
-                    match ron::from_str::<egui_theme::EguiTheme>(file_data.to_string().as_str()) {
-                        Ok(theme) => {
-                            let (style, font_definitions) = theme.extract();
-                            self.egui_ctx.set_style(style);
-                            self.egui_ctx.set_fonts(font_definitions);
-                        }
-                        Err(err) => {
-                            godot_error!("Theme could not be deserialized due to: {:#?}", err);
+        
+        // We do not check if the themepath is empty. 
+        if !self.theme_path.is_empty() {
+            let file = File::new();
+            if file.file_exists(self.theme_path.as_str()) {
+                match file.open(self.theme_path.as_str(), File::READ) {
+                    Ok(_) => {
+                        let file_data = file.get_as_text();
+                        match ron::from_str::<egui_theme::EguiTheme>(file_data.to_string().as_str()) {
+                            Ok(theme) => {
+                                let (style, font_definitions) = theme.extract();
+                                self.egui_ctx.set_style(style);
+                                self.egui_ctx.set_fonts(font_definitions);
+                            }
+                            Err(err) => {
+                                godot_error!("Theme could not be deserialized due to: {:#?}", err);
+                            }
                         }
                     }
+                    Err(error) => {
+                        godot_error!("{}", error);
+                    }
                 }
-                Err(error) => {
-                    godot_error!("{}", error);
-                }
+            } else {
+                godot_error!("file {} does not exist", &self.theme_path)
             }
-        } else {
-            godot_error!("file {} does not exist", &self.theme_path)
         }
     }
 
