@@ -5,6 +5,7 @@ use gdnative::api::{
     File, GlobalConstants, ImageTexture, InputEventMouseButton, InputEventMouseMotion, VisualServer,
 };
 
+use gdnative::nativescript::Export;
 use gdnative::nativescript::property::{EnumHint, FloatHint, RangeHint};
 use gdnative::prelude::*;
 
@@ -37,6 +38,40 @@ pub fn rid_to_egui_texture_id(x: Rid) -> egui::TextureId {
     // Safety: See `u64_to_rid`
     unsafe { egui::TextureId::User(std::mem::transmute::<gdnative::sys::godot_rid, u64>(*x.sys())) }
 }
+#[derive(ToVariant)]
+enum GodotEguiInputMode {
+    None = 0,
+    Input = 1,
+    GuiInput = 2,
+}
+
+impl FromVariant for GodotEguiInputMode {
+    fn from_variant(variant: &Variant) -> Result<Self, FromVariantError> {
+        match i64::from_variant(variant)? {
+            0 => Ok(GodotEguiInputMode::None),
+            1 => Ok(GodotEguiInputMode::Input),
+            2 => Ok(GodotEguiInputMode::GuiInput),
+            _ => Err(FromVariantError::UnknownEnumVariant{
+                variant: "i64".to_owned(),
+                expected: &["0", "1", "2"],
+            }),
+        }
+    }
+}
+
+impl Export for GodotEguiInputMode {
+    type Hint = gdnative::nativescript::property::IntHint<u32>;
+
+    fn export_info(_hint: Option<Self::Hint>) -> ExportInfo {
+        Self::Hint::Enum(EnumHint::new(vec![
+            "None".to_owned(),
+            "Input".to_owned(),
+            "GuiInput".to_owned(),
+        ]))
+        .export_info()
+    }
+
+}
 
 /// Stores a canvas item, used by the visual server
 struct VisualServerMesh {
@@ -66,6 +101,8 @@ pub struct GodotEgui {
     /// This can be used for when the UI's backend events are always changing.
     #[property(default = false)]
     reactive_update: bool,
+    #[property]
+    input_mode: GodotEguiInputMode,
 
     /// The amount of scrolled pixels per mouse wheel event
     #[property]
@@ -112,6 +149,7 @@ impl GodotEgui {
             mouse_was_captured: false,
             cursor_icon: egui::CursorIcon::Default,
             reactive_update: false,
+            input_mode: GodotEguiInputMode::None,
             scroll_speed: 20.0,
             disable_texture_filtering: false,
             pixels_per_point: 1f64,
@@ -129,14 +167,36 @@ impl GodotEgui {
             godot_error!("pixels per point must be greater than 0");
         }
     }
-
+    /// Updates egui from the `_input` callback
+    
     /// Run when this node is added to the scene tree. Runs some initialization logic, like registering any
     /// custom fonts defined as properties
     #[export]
     fn _ready(&mut self, owner: TRef<Control>) {
-        // This node should **never** take input events or be capable of taking focus from another node.
-        owner.set_mouse_filter(Control::MOUSE_FILTER_IGNORE);
-        owner.set_focus_mode(Control::FOCUS_NONE);
+        match self.input_mode {
+            GodotEguiInputMode::None => {
+                godot_print!("GodotEgui is not accepting input");
+                owner.set_mouse_filter(Control::MOUSE_FILTER_IGNORE);
+                owner.set_focus_mode(Control::FOCUS_NONE);
+                owner.set_process_input(false);
+            },
+            GodotEguiInputMode::Input => {
+                godot_print!("GodotEgui is accepting input");
+                owner.set_process_input(true);
+                // Ignore GUI input
+                owner.set_mouse_filter(Control::MOUSE_FILTER_IGNORE);
+                owner.set_focus_mode(Control::FOCUS_NONE);
+            },
+            GodotEguiInputMode::GuiInput => {
+                godot_print!("GodotEgui is accepting GUI input");
+                // Ignore input
+                owner.set_process_input(false);
+                // Accept GUI Input
+                owner.set_mouse_filter(Control::MOUSE_FILTER_PASS);
+                owner.set_focus_mode(Control::FOCUS_ALL);
+            }
+        }
+
         // Run a single dummy frame to ensure the fonts are created, otherwise egui panics
         self.egui_ctx.begin_frame(egui::RawInput::default());
         self.egui_ctx.set_pixels_per_point(self.pixels_per_point as f32);
@@ -175,9 +235,29 @@ impl GodotEgui {
     pub fn mouse_was_captured(&self, _owner: TRef<Control>) -> bool {
         self.mouse_was_captured
     }
+
+    #[export]
+    pub fn _input(&mut self, owner: TRef<Control>, event: Ref<InputEvent>) {
+        self.handle_godot_input(owner, event, false);
+        if self.mouse_was_captured(owner) {
+            // Set the input as handled by the viewport if the gui believes that is has been captured.
+            unsafe { owner.get_viewport().expect("Viewport").assume_safe().set_input_as_handled() };
+        }
+    }
+
+    /// Updates egui from the `_gui_input` callback
+    #[export]
+    pub fn _gui_input(&mut self, owner: TRef<Control>, event: Ref<InputEvent>) {
+        self.handle_godot_input(owner, event, true);
+        if self.mouse_was_captured(owner) {
+            owner.accept_event();
+        }
+    }
+
     /// Call from the user code to pass the input event into `Egui`.
     /// `event` should be the raw `InputEvent` that is handled by `_input`, `_gui_input` and `_unhandled_input`.
     /// `is_gui_input` should be true only if this event should be processed like it was emitted from the `_gui_input` callback.
+    /// # Note: If you are calling this manually, self.input_mode *MUST* be set to GodotEguiInputMode::None
     #[export]
     pub fn handle_godot_input(&mut self, owner: TRef<Control>, event: Ref<InputEvent>, is_gui_input: bool) {
         let event = unsafe { event.assume_safe() };
