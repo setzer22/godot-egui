@@ -456,6 +456,20 @@ impl GodotEgui {
             }
         }
     }
+
+    /// Clears the screen, this can be used to cleanup the various textures and meshes that are currently being drawn to the screen from egui.
+    /// # Usage Note
+    /// This should only be necessary when you wish to disable an Egui node and do not wish to use the internal Godot visibility or when you wish to free canvas_item resources
+    /// for memory intensive GUIs.
+    #[export]
+    fn clear(&mut self, _owner: TRef<Control>) {
+        let vs = unsafe { VisualServer::godot_singleton() };
+        for mesh in self.meshes.iter() {
+            vs.free_rid(mesh.canvas_item);
+        }
+        self.meshes.clear();
+    }
+
     /// Requests that the UI is refreshed from EGUI.
     /// Has no effect when `reactive_update` is false.
     /// ## Usage Note
@@ -468,6 +482,7 @@ impl GodotEgui {
     fn refresh(&self, _owner: TRef<Control>) {
         self.egui_ctx.request_repaint();
     }
+
     /// Call this to draw a new frame using a closure taking a single `egui::CtxRef` parameter
     pub fn update_ctx(&mut self, owner: TRef<Control>, draw_fn: impl FnOnce(&mut egui::CtxRef)) {
         // Collect input
@@ -525,6 +540,16 @@ impl GodotEgui {
                 }))
                 .show(egui_ctx, draw_fn);
         })
+    }
+}
+
+// This `Drop` is required to ensure that the VisualServerMesh RIDs are properly freed when GodotEgui is freed.
+impl Drop for GodotEgui {
+    fn drop(&mut self) {
+        let vs = unsafe { VisualServer::godot_singleton() };
+        for mesh in self.meshes.iter() {
+            vs.free_rid(mesh.canvas_item);
+        }
     }
 }
 
