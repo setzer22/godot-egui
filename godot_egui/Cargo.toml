@@ -12,7 +12,7 @@ readme = "../README.md"
 workspace = ".."
 
 [dependencies]
-gdnative = "0.9.3"
+gdnative = { git = "https://github.com/setzer22/godot-rust", branch = "feat/transform2d-impls" }
 egui = "0.14.2"
 egui-theme = "0.1.0"
 ron = "0.6.4"

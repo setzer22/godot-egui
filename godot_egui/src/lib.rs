@@ -18,7 +18,7 @@ pub mod egui_helpers;
 /// Converts an egui color into a godot color
 pub fn egui2color(c: egui::Color32) -> Color {
     let as_f32 = |x| x as f32 / u8::MAX as f32;
-    Color::rgba(as_f32(c.r()), as_f32(c.g()), as_f32(c.b()), as_f32(c.a()))
+    Color::from_rgba(as_f32(c.r()), as_f32(c.g()), as_f32(c.b()), as_f32(c.a()))
 }
 
 /// Converts a godot color into an egui color
@@ -270,13 +270,12 @@ impl GodotEgui {
                 mouse_pos
             } else {
                 // NOTE: The egui is painted inside a control node, so its global rect offset must be taken into account.
-                let offset_position = mouse_pos - owner.get_global_rect().origin.to_vector();
+                let offset_position = mouse_pos - owner.get_global_rect().position;
                 // This is used to get the correct rotation when the root node is rotated.
                 owner
                     .get_global_transform()
-                    .inverse()
-                    .expect("screen space coordinates must be invertible")
-                    .transform_vector(offset_position)
+                    .affine_inverse()
+                    .xform(offset_position)
             };
             // It is necessary to translate the mouse position which refers to physical pixel position to egui's logical points
             // This is found using the inverse of current `pixels_per_point` setting.
@@ -441,15 +440,19 @@ impl GodotEgui {
                 
                 vs.canvas_item_set_transform(
                     vs_mesh.canvas_item,
-                    Transform2D::new(pixels_per_point, 0.0, 0.0, pixels_per_point, 0.0, 0.0),
+                    Transform2D::from_axis_origin(
+                        Vector2::new(pixels_per_point, 0.0), 
+                        Vector2::new(0.0, pixels_per_point), 
+                        Vector2::new(0.0, 0.0)
+                    ),
                 );
                 vs.canvas_item_set_clip(vs_mesh.canvas_item, true);
                 vs.canvas_item_set_custom_rect(
                     vs_mesh.canvas_item,
                     true,
                     Rect2 {
-                        origin: Point2::new(clip_rect.min.x, clip_rect.min.y),
-                        size: Size2::new(clip_rect.max.x - clip_rect.min.x, clip_rect.max.y - clip_rect.min.y),
+                        position: Vector2::new(clip_rect.min.x, clip_rect.min.y),
+                        size: Vector2::new(clip_rect.max.x - clip_rect.min.x, clip_rect.max.y - clip_rect.min.y),
                     },
                 );
             }
@@ -475,7 +478,7 @@ impl GodotEgui {
         let size = owner.get_rect().size;
         let points_per_pixel = (1.0 / self.pixels_per_point) as f32;
         raw_input.screen_rect =
-            Some(egui::Rect::from_min_size(Default::default(), egui::Vec2::new(size.width * points_per_pixel, size.height * points_per_pixel)));
+            Some(egui::Rect::from_min_size(Default::default(), egui::Vec2::new(size.x * points_per_pixel, size.y * points_per_pixel)));
 
         self.egui_ctx.begin_frame(raw_input);
 

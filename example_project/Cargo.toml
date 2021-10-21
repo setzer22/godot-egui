@@ -10,6 +10,6 @@ workspace = ".."
 crate-type = ["cdylib"]
 
 [dependencies]
-gdnative = "0.9.3"
+gdnative = { git = "https://github.com/setzer22/godot-rust", branch = "feat/transform2d-impls" }
 egui = "0.14.2"
 godot_egui = { path = "../godot_egui" }
