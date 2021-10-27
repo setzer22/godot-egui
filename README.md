@@ -131,6 +131,24 @@ gui.map_mut(|gui, instance| {
 
 The draw code needs to be run constantly, so you should call it from a `_process` callback or similar.
 
+### Getting Godot Input from `egui::Ui`
+
+GodotEgui includes the `ext` module along with several extension traits that can be used to access the Godot Input data from `egui::Ui`.
+
+These can be imported by using `use godot_egui::ext::*` or by importing only the extension traits that you need for your project.
+
+#### Example
+
+```rust
+use godot_egui::ext::InputMapExt;
+gui.update(instance, None, |ui| {
+    ui.label("Is 'ui_up' pressed?");
+    if ui.is_action_pressed("ui_up") {
+        ui.label("Yes!");
+    }
+});
+```
+
 ## Running the example
 
 Should be as simple as:

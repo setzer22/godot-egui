@@ -14,6 +14,7 @@ pub(crate) mod enum_conversions;
 
 /// Some helper functions and traits for godot-egui
 pub mod egui_helpers;
+pub mod ext;
 
 /// Converts an egui color into a godot color
 pub fn egui2color(c: egui::Color32) -> Color {
