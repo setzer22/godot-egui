@@ -16,15 +16,19 @@ __meta__ = {
 [node name="godot_egui" type="Control" parent="."]
 anchor_right = 1.0
 anchor_bottom = 1.0
-focus_mode = 1
+mouse_filter = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 script = ExtResource( 2 )
 __meta__ = {
 "_edit_use_anchors_": false
 }
+reactive_update = true
 scroll_speed = 20.0
-consume_mouse_events = true
+input_mode = {
+"None": {
+}
+}
 disable_texture_filtering = false
 EguiTheme = "res://addons/egui_stylist/godot-editor.eguitheme"
 

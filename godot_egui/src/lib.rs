@@ -88,7 +88,6 @@ struct SyncedTexture {
     texture_version: Option<u64>,
     godot_texture: Ref<ImageTexture>,
 }
-
 /// Core type to draw egui-based controls in Godot.
 /// The `update` or `update_ctx` methods can be used to draw a new frame.
 #[derive(NativeClass)]
