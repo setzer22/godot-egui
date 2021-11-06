@@ -480,10 +480,14 @@ impl GodotEgui {
                     Transform2D::new(pixels_per_point, 0.0, 0.0, pixels_per_point, 0.0, 0.0),
                 );
                 vs.canvas_item_set_clip(vs_mesh.canvas_item, true);
-                vs.canvas_item_set_custom_rect(vs_mesh.canvas_item, true, Rect2 {
-                    origin: Point2::new(clip_rect.min.x, clip_rect.min.y),
-                    size: Size2::new(clip_rect.max.x - clip_rect.min.x, clip_rect.max.y - clip_rect.min.y),
-                });
+                vs.canvas_item_set_custom_rect(
+                    vs_mesh.canvas_item,
+                    true,
+                    Rect2 {
+                        origin: Point2::new(clip_rect.min.x, clip_rect.min.y),
+                        size: Size2::new(clip_rect.max.x - clip_rect.min.x, clip_rect.max.y - clip_rect.min.y),
+                    },
+                );
             }
         }
     }
