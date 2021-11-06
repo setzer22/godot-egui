@@ -1,5 +1,5 @@
-use gdnative::api::GlobalConstants;
 use gdnative::api::control::CursorShape;
+use gdnative::api::GlobalConstants;
 
 pub fn scancode_to_egui(scancode: i64) -> Option<egui::Key> {
     match scancode {
@@ -71,7 +71,7 @@ pub fn mouse_button_index_to_egui(button_index: i64) -> Option<egui::PointerButt
 pub fn mouse_cursor_egui_to_godot(cursor: egui::CursorIcon) -> CursorShape {
     use egui::CursorIcon;
     // Any missing egui::CursorIcon enum options use the default case if there is currently not
-    // an equivalent in Godot. 
+    // an equivalent in Godot.
     match cursor {
         CursorIcon::Default => CursorShape::ARROW,
         CursorIcon::ContextMenu => CursorShape::ARROW,

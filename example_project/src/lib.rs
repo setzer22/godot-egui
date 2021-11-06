@@ -1,6 +1,6 @@
 use egui::ComboBox;
 use gdnative::prelude::*;
-use godot_egui::{GodotEgui, ext::InputMapExt};
+use godot_egui::{ext::InputMapExt, GodotEgui};
 mod window;
 use window::GodotEguiWindowExample;
 
@@ -233,7 +233,9 @@ impl GodotEguiExample {
                         });
                         ui.label("You can also edit text like below!");
                         ui.text_edit_multiline(&mut self.text_edit_text);
-                        ui.label("And (via extension traits) capture Godot's input events (press an assigned key)");
+                        ui.label(
+                            "And (via extension traits) capture Godot's input events (press an assigned key)",
+                        );
                         let input_map = gdnative::api::InputMap::godot_singleton();
                         for action in input_map.get_actions().iter() {
                             if let Some(action) = action.try_to_string() {

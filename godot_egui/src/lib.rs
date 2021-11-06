@@ -246,7 +246,9 @@ impl GodotEgui {
 
     /// Is used to indicate if the mouse was captured during the previous frame.
     #[export]
-    pub fn mouse_was_captured(&self, _owner: TRef<Control>) -> bool { self.mouse_was_captured }
+    pub fn mouse_was_captured(&self, _owner: TRef<Control>) -> bool {
+        self.mouse_was_captured
+    }
 
     #[export]
     pub fn _input(&mut self, owner: TRef<Control>, event: Ref<InputEvent>) {
@@ -510,7 +512,9 @@ impl GodotEgui {
     /// If the UI should be updated almost every frame due to animations or constant changes with data, favor
     /// setting `reactive_update` to true instead.
     #[export]
-    fn refresh(&self, _owner: TRef<Control>) { self.egui_ctx.request_repaint(); }
+    fn refresh(&self, _owner: TRef<Control>) {
+        self.egui_ctx.request_repaint();
+    }
 
     /// Call this to draw a new frame using a closure taking a single `egui::CtxRef` parameter
     pub fn update_ctx(&mut self, owner: TRef<Control>, draw_fn: impl FnOnce(&mut egui::CtxRef)) {
@@ -590,10 +594,14 @@ impl Drop for GodotEgui {
 /// ## Note
 /// This method should not be used in any library where `register_classes_as_tool` is run. Doing so may result
 /// in `gdnative` errors.
-pub fn register_classes(handle: InitHandle) { handle.add_class::<GodotEgui>(); }
+pub fn register_classes(handle: InitHandle) {
+    handle.add_class::<GodotEgui>();
+}
 
 /// Helper method that registers all GodotEgui `NativeClass` objects as tool scripts. This should **only** be
 /// used when GodotEgui is to be run inside the Godot editor. ## Note
 /// This method should not be used in any library where `register_classes` is run. Doing so may result in
 /// `gdnative` errors.
-pub fn register_classes_as_tool(handle: InitHandle) { handle.add_tool_class::<GodotEgui>(); }
+pub fn register_classes_as_tool(handle: InitHandle) {
+    handle.add_tool_class::<GodotEgui>();
+}
