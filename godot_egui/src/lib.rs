@@ -243,6 +243,11 @@ impl GodotEgui {
                 godot_error!("file {} does not exist", &self.theme_path)
             }
         }
+
+        // Force an update after loading the theme. This ensures the font texture is built and that the inner
+        // EguiCtx is not left in an intermediate state.
+        self.egui_ctx.begin_frame(egui::RawInput::default());
+        let _ = self.egui_ctx.end_frame();
     }
 
     /// Is used to indicate if the mouse was captured during the previous frame.
