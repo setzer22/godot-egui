@@ -3,8 +3,6 @@ fn_args_layout = "Compressed"
 
 # function_arguments = "Visual"
 
-overflow_delimited_expr = true
-
 remove_nested_parens = true
 
 reorder_imports = true
