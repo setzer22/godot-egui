@@ -1,4 +1,11 @@
+# Rust
 target
 godot_egui/Cargo.lock
 Cargo.lock
+
+# Godot
 .import
+
+# IDEs
+.idea
+.vscode
