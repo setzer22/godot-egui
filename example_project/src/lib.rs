@@ -19,7 +19,7 @@ pub struct GodotEguiExample {
     show_font_settings: bool,
 }
 
-#[gdnative::methods]
+#[gdnative::derive::methods]
 impl GodotEguiExample {
     pub fn new(_owner: TRef<Control>) -> Self {
         Self {

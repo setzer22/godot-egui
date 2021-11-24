@@ -4,7 +4,7 @@ use std::rc::Rc;
 use gdnative::api::{
     File, GlobalConstants, ImageTexture, InputEventMouseButton, InputEventMouseMotion, VisualServer,
 };
-use gdnative::nativescript::property::{EnumHint, StringHint};
+use gdnative::export::hint::{EnumHint, StringHint};
 use gdnative::prelude::*;
 
 /// Contains conversion tables between Godot and egui input constants (keys, mouse buttons)
@@ -92,7 +92,7 @@ fn register_properties(builder: &ClassBuilder<GodotEgui>) {
     }
 }
 
-#[gdnative::methods]
+#[gdnative::derive::methods]
 impl GodotEgui {
     /// Constructs a new egui node
     pub fn new(_owner: TRef<Control>) -> GodotEgui {
