@@ -228,7 +228,7 @@ impl GodotEgui {
 
     /// Paints a list of `egui::ClippedMesh` using the `VisualServer`
     fn paint_shapes(
-        &mut self, owner: TRef<Control>, clipped_meshes: Vec<egui::ClippedMesh>, egui_texture: &egui::Texture,
+        &mut self, owner: &Control, clipped_meshes: Vec<egui::ClippedMesh>, egui_texture: &egui::Texture,
     ) {
         let vs = unsafe { VisualServer::godot_singleton() };
 
@@ -338,7 +338,7 @@ impl GodotEgui {
     }
 
     /// Call this to draw a new frame using a closure taking a single `egui::CtxRef` parameter
-    pub fn update_ctx(&mut self, owner: TRef<Control>, draw_fn: impl FnOnce(&mut egui::CtxRef)) {
+    pub fn update_ctx(&mut self, owner: &Control, draw_fn: impl FnOnce(&mut egui::CtxRef)) {
         // Collect input
         let mut raw_input = self.raw_input.take();
         let size = owner.get_rect().size;
@@ -365,7 +365,7 @@ impl GodotEgui {
     /// `update_ctx` if the `CentralPanel` is going to be used for convenience. Accepts an optional
     /// `egui::Frame` to draw the panel background
     pub fn update(
-        &mut self, owner: TRef<Control>, frame: Option<egui::Frame>, draw_fn: impl FnOnce(&mut egui::Ui),
+        &mut self, owner: &Control, frame: Option<egui::Frame>, draw_fn: impl FnOnce(&mut egui::Ui),
     ) {
         self.update_ctx(owner, |egui_ctx| {
             // Run user code

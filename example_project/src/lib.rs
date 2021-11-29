@@ -73,7 +73,7 @@ impl GodotEguiExample {
         gui.map_mut(|gui, instance| {
             // We use the `update` method here to just draw a simple UI on the central panel. If you need more
             // fine-grained control, you can use update_ctx to get access to egui's context directly.
-            gui.update_ctx(instance, /* Some(frame), */ |ctx| {
+            gui.update_ctx(&instance, /* Some(frame), */ |ctx| {
                 egui::CentralPanel::default().frame(frame).show(ctx, |ui| {
                     ui.columns(2, |columns| {
                         let ui = &mut columns[0];
@@ -175,7 +175,7 @@ impl GodotEguiExample {
             });
 
             if should_reverse_font_priorities {
-                gui.update_ctx(instance, |ctx| {
+                gui.update_ctx(&instance, |ctx| {
                     let mut font_defs = ctx.fonts().definitions().clone();
                     font_defs.fonts_for_family.get_mut(&egui::FontFamily::Proportional).unwrap().reverse();
                     ctx.set_fonts(font_defs);
