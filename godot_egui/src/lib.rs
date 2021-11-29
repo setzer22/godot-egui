@@ -339,6 +339,8 @@ impl GodotEgui {
 
     /// Call this to draw a new frame using a closure taking a single `egui::CtxRef` parameter
     pub fn update_ctx(&mut self, owner: &Control, draw_fn: impl FnOnce(&mut egui::CtxRef)) {
+        assert!(owner.get_parent().is_some(), "GodotEgui must be attached in the scene tree");
+
         // Collect input
         let mut raw_input = self.raw_input.take();
         let size = owner.get_rect().size;
