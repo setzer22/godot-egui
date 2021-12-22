@@ -83,7 +83,7 @@ pub struct GodotEgui {
 fn register_properties(builder: &ClassBuilder<GodotEgui>) {
     for i in 0..5 {
         builder
-            .add_property::<String>(&format!("custom_font_{}", i + 1))
+            .property::<String>(&format!("custom_font_{}", i + 1))
             .with_getter(move |x: &GodotEgui, _| x.custom_fonts[i].as_ref().cloned().unwrap_or_default())
             .with_setter(move |x: &mut GodotEgui, _, new_val| x.custom_fonts[i] = Some(new_val))
             .with_default("".to_owned())
