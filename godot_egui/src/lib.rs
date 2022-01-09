@@ -266,9 +266,11 @@ impl GodotEgui {
             if idx >= self.meshes.len() {
                 // If there's no room for this mesh, create it:
                 let canvas_item = vs.canvas_item_create();
-                vs.canvas_item_set_parent(canvas_item, owner.get_canvas_item());
-                vs.canvas_item_set_draw_index(canvas_item, idx as i64);
-                vs.canvas_item_clear(canvas_item);
+                unsafe {
+                    vs.canvas_item_set_parent(canvas_item, owner.get_canvas_item());
+                    vs.canvas_item_set_draw_index(canvas_item, idx as i64);
+                    vs.canvas_item_clear(canvas_item);
+                }
                 self.meshes.push(VisualServerMesh { canvas_item /* , mesh: mesh.into_shared() */ });
             }
         }
@@ -276,7 +278,7 @@ impl GodotEgui {
         // Bookkeeping: Cleanup unused meshes. Pop from back to front
         for _idx in (clipped_meshes.len()..self.meshes.len()).rev() {
             let vs_mesh = self.meshes.pop().expect("This should always pop");
-            vs.free_rid(vs_mesh.canvas_item);
+            unsafe { vs.free_rid(vs_mesh.canvas_item); }
         }
 
         assert!(
@@ -289,7 +291,7 @@ impl GodotEgui {
         {
             // Skip the mesh if empty, but clear the mesh if it previously existed
             if mesh.vertices.is_empty() {
-                vs.canvas_item_clear(vs_mesh.canvas_item);
+                unsafe { vs.canvas_item_clear(vs_mesh.canvas_item); }
                 continue;
             }
 
@@ -313,27 +315,29 @@ impl GodotEgui {
                 mesh.vertices.iter().map(|x| x.uv).map(|uv| Vector2::new(uv.x, uv.y)).collect::<Vector2Array>();
             let colors = mesh.vertices.iter().map(|x| x.color).map(egui2color).collect::<ColorArray>();
 
-            vs.canvas_item_clear(vs_mesh.canvas_item);
-            vs.canvas_item_add_triangle_array(
-                vs_mesh.canvas_item,
-                indices,
-                vertices,
-                colors,
-                uvs,
-                Int32Array::new(),
-                Float32Array::new(),
-                texture_rid,
-                -1,
-                Rid::new(),
-                false,
-                false,
-            );
+            unsafe {
+                vs.canvas_item_clear(vs_mesh.canvas_item);
+                vs.canvas_item_add_triangle_array(
+                    vs_mesh.canvas_item,
+                    indices,
+                    vertices,
+                    colors,
+                    uvs,
+                    Int32Array::new(),
+                    Float32Array::new(),
+                    texture_rid,
+                    -1,
+                    Rid::new(),
+                    false,
+                    false,
+                );
 
-            vs.canvas_item_set_clip(vs_mesh.canvas_item, true);
-            vs.canvas_item_set_custom_rect(vs_mesh.canvas_item, true, Rect2 {
-                position: Vector2::new(clip_rect.min.x, clip_rect.min.y),
-                size: Vector2::new(clip_rect.max.x - clip_rect.min.x, clip_rect.max.y - clip_rect.min.y),
-            });
+                vs.canvas_item_set_clip(vs_mesh.canvas_item, true);
+                vs.canvas_item_set_custom_rect(vs_mesh.canvas_item, true, Rect2 {
+                    position: Vector2::new(clip_rect.min.x, clip_rect.min.y),
+                    size: Vector2::new(clip_rect.max.x - clip_rect.min.x, clip_rect.max.y - clip_rect.min.y),
+                });
+            }
         }
     }
 
