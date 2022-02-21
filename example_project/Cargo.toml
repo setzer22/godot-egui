@@ -10,6 +10,7 @@ workspace = ".."
 crate-type = ["cdylib"]
 
 [dependencies]
-gdnative = { git = "https://github.com/godot-rust/godot-rust.git", branch = "master" }
-egui = "0.15.0"
+#gdnative = { git = "https://github.com/godot-rust/godot-rust.git", branch = "master" }
+gdnative = "0.10.0-rc.0"
+egui = "0.15"
 godot_egui = { path = "../godot_egui" }
