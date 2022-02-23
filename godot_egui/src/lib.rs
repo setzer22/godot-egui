@@ -4,7 +4,7 @@ use std::rc::Rc;
 use gdnative::api::{
     File, GlobalConstants, ImageTexture, InputEventMouseButton, InputEventMouseMotion, VisualServer,
 };
-use gdnative::nativescript::property::{EnumHint, StringHint};
+use gdnative::export::hint::{EnumHint, StringHint};
 use gdnative::prelude::*;
 
 /// Contains conversion tables between Godot and egui input constants (keys, mouse buttons)
@@ -83,7 +83,7 @@ pub struct GodotEgui {
 fn register_properties(builder: &ClassBuilder<GodotEgui>) {
     for i in 0..5 {
         builder
-            .add_property::<String>(&format!("custom_font_{}", i + 1))
+            .property::<String>(&format!("custom_font_{}", i + 1))
             .with_getter(move |x: &GodotEgui, _| x.custom_fonts[i].as_ref().cloned().unwrap_or_default())
             .with_setter(move |x: &mut GodotEgui, _, new_val| x.custom_fonts[i] = Some(new_val))
             .with_default("".to_owned())
@@ -92,7 +92,7 @@ fn register_properties(builder: &ClassBuilder<GodotEgui>) {
     }
 }
 
-#[gdnative::methods]
+#[gdnative::derive::methods]
 impl GodotEgui {
     /// Constructs a new egui node
     pub fn new(_owner: TRef<Control>) -> GodotEgui {
@@ -228,7 +228,7 @@ impl GodotEgui {
 
     /// Paints a list of `egui::ClippedMesh` using the `VisualServer`
     fn paint_shapes(
-        &mut self, owner: TRef<Control>, clipped_meshes: Vec<egui::ClippedMesh>, egui_texture: &egui::Texture,
+        &mut self, owner: &Control, clipped_meshes: Vec<egui::ClippedMesh>, egui_texture: &egui::Texture,
     ) {
         let vs = unsafe { VisualServer::godot_singleton() };
 
@@ -266,9 +266,11 @@ impl GodotEgui {
             if idx >= self.meshes.len() {
                 // If there's no room for this mesh, create it:
                 let canvas_item = vs.canvas_item_create();
-                vs.canvas_item_set_parent(canvas_item, owner.get_canvas_item());
-                vs.canvas_item_set_draw_index(canvas_item, idx as i64);
-                vs.canvas_item_clear(canvas_item);
+                unsafe {
+                    vs.canvas_item_set_parent(canvas_item, owner.get_canvas_item());
+                    vs.canvas_item_set_draw_index(canvas_item, idx as i64);
+                    vs.canvas_item_clear(canvas_item);
+                }
                 self.meshes.push(VisualServerMesh { canvas_item /* , mesh: mesh.into_shared() */ });
             }
         }
@@ -276,7 +278,7 @@ impl GodotEgui {
         // Bookkeeping: Cleanup unused meshes. Pop from back to front
         for _idx in (clipped_meshes.len()..self.meshes.len()).rev() {
             let vs_mesh = self.meshes.pop().expect("This should always pop");
-            vs.free_rid(vs_mesh.canvas_item);
+            unsafe { vs.free_rid(vs_mesh.canvas_item); }
         }
 
         assert!(
@@ -289,7 +291,7 @@ impl GodotEgui {
         {
             // Skip the mesh if empty, but clear the mesh if it previously existed
             if mesh.vertices.is_empty() {
-                vs.canvas_item_clear(vs_mesh.canvas_item);
+                unsafe { vs.canvas_item_clear(vs_mesh.canvas_item); }
                 continue;
             }
 
@@ -313,32 +315,36 @@ impl GodotEgui {
                 mesh.vertices.iter().map(|x| x.uv).map(|uv| Vector2::new(uv.x, uv.y)).collect::<Vector2Array>();
             let colors = mesh.vertices.iter().map(|x| x.color).map(egui2color).collect::<ColorArray>();
 
-            vs.canvas_item_clear(vs_mesh.canvas_item);
-            vs.canvas_item_add_triangle_array(
-                vs_mesh.canvas_item,
-                indices,
-                vertices,
-                colors,
-                uvs,
-                Int32Array::new(),
-                Float32Array::new(),
-                texture_rid,
-                -1,
-                Rid::new(),
-                false,
-                false,
-            );
+            unsafe {
+                vs.canvas_item_clear(vs_mesh.canvas_item);
+                vs.canvas_item_add_triangle_array(
+                    vs_mesh.canvas_item,
+                    indices,
+                    vertices,
+                    colors,
+                    uvs,
+                    Int32Array::new(),
+                    Float32Array::new(),
+                    texture_rid,
+                    -1,
+                    Rid::new(),
+                    false,
+                    false,
+                );
 
-            vs.canvas_item_set_clip(vs_mesh.canvas_item, true);
-            vs.canvas_item_set_custom_rect(vs_mesh.canvas_item, true, Rect2 {
-                position: Vector2::new(clip_rect.min.x, clip_rect.min.y),
-                size: Vector2::new(clip_rect.max.x - clip_rect.min.x, clip_rect.max.y - clip_rect.min.y),
-            });
+                vs.canvas_item_set_clip(vs_mesh.canvas_item, true);
+                vs.canvas_item_set_custom_rect(vs_mesh.canvas_item, true, Rect2 {
+                    position: Vector2::new(clip_rect.min.x, clip_rect.min.y),
+                    size: Vector2::new(clip_rect.max.x - clip_rect.min.x, clip_rect.max.y - clip_rect.min.y),
+                });
+            }
         }
     }
 
     /// Call this to draw a new frame using a closure taking a single `egui::CtxRef` parameter
-    pub fn update_ctx(&mut self, owner: TRef<Control>, draw_fn: impl FnOnce(&mut egui::CtxRef)) {
+    pub fn update_ctx(&mut self, owner: &Control, draw_fn: impl FnOnce(&mut egui::CtxRef)) {
+        assert!(owner.get_parent().is_some(), "GodotEgui must be attached in the scene tree");
+
         // Collect input
         let mut raw_input = self.raw_input.take();
         let size = owner.get_rect().size;
@@ -365,7 +371,7 @@ impl GodotEgui {
     /// `update_ctx` if the `CentralPanel` is going to be used for convenience. Accepts an optional
     /// `egui::Frame` to draw the panel background
     pub fn update(
-        &mut self, owner: TRef<Control>, frame: Option<egui::Frame>, draw_fn: impl FnOnce(&mut egui::Ui),
+        &mut self, owner: &Control, frame: Option<egui::Frame>, draw_fn: impl FnOnce(&mut egui::Ui),
     ) {
         self.update_ctx(owner, |egui_ctx| {
             // Run user code
