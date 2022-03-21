@@ -37,10 +37,10 @@ impl GodotEguiColorTest {
     }
 
     fn draw(&mut self, ctx: &mut CtxRef) {
-        Window::new("Color Test").scroll(true).show(ctx, |ui| {
+        Window::new("Color Test").vscroll(true).show(ctx, |ui| {
             self.egui_test.ui(ui, &mut None);
         });
-        Window::new("Settings").scroll(true).show(ctx, |ui| {
+        Window::new("Settings").vscroll(true).show(ctx, |ui| {
             ctx.settings_ui(ui);
         });
     }
