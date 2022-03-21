@@ -8,7 +8,7 @@ pub struct GodotEguiDemoLib {
     gui: Option<Instance<GodotEgui, Shared>>,
 }
 
-#[gdnative::methods]
+#[methods]
 impl GodotEguiDemoLib {
     fn new(_owner: &Control) -> Self {
         Self { egui_demo: egui_demo_lib::DemoWindows::default(), gui: None }

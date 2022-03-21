@@ -9,7 +9,7 @@ pub struct GodotEguiColorTest {
     gui: Option<Instance<GodotEgui, Shared>>,
 }
 
-#[gdnative::methods]
+#[methods]
 impl GodotEguiColorTest {
     fn new(_owner: &Control) -> Self {
         Self { egui_test: egui_demo_lib::ColorTest::default(), gui: None }

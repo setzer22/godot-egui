@@ -10,7 +10,7 @@ workspace = ".."
 crate-type = ["cdylib"]
 
 [dependencies]
-gdnative = "0.9.3"
+gdnative = "0.10.0"
 egui = "0.15.0"
 egui_demo_lib = "0.15"
 godot_egui = { path = "../godot_egui" }

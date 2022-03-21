@@ -12,7 +12,7 @@ readme = "../README.md"
 workspace = ".."
 
 [dependencies]
-gdnative = "0.9.3"
+gdnative = "0.10.0"
 egui = "0.15.0"
 egui-theme = "0.1.1"
 ron = "0.6.4"

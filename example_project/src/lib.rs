@@ -36,7 +36,7 @@ pub struct GodotEguiExample {
     handle_input: bool,
 }
 
-#[gdnative::methods]
+#[methods]
 impl GodotEguiExample {
     pub fn new(_owner: TRef<Control>) -> Self {
         Self {
@@ -58,7 +58,7 @@ impl GodotEguiExample {
     }
 
     #[export]
-    #[gdnative::profiled]
+    #[profiled]
     pub fn _ready(&mut self, owner: TRef<Control>) {
         owner.set_process_input(self.handle_input);
         if self.handle_gui_input {
@@ -89,7 +89,7 @@ impl GodotEguiExample {
     }
     /// Updates egui from the `_input` callback
     #[export]
-    #[gdnative::profiled]
+    #[profiled]
     pub fn _input(&mut self, owner: TRef<Control>, event: Ref<InputEvent>) {
         let gui = unsafe { self.gui.as_ref().expect("GUI initialized").assume_safe() };
         gui.map_mut(|gui, instance| {
@@ -104,7 +104,7 @@ impl GodotEguiExample {
 
     /// Updates egui from the `_gui_input` callback
     #[export]
-    #[gdnative::profiled]
+    #[profiled]
     pub fn _gui_input(&mut self, owner: TRef<Control>, event: Ref<InputEvent>) {
         let gui = unsafe { self.gui.as_ref().expect("GUI initialized").assume_safe() };
         gui.map_mut(|gui, instance| {
@@ -116,7 +116,7 @@ impl GodotEguiExample {
         .expect("map_mut should succeed");
     }
     #[export]
-    #[gdnative::profiled]
+    #[profiled]
     pub fn _process(&mut self, _owner: TRef<Control>, delta: f64) {
         let gui = unsafe { self.gui.as_ref().expect("GUI initialized").assume_safe() };
 
@@ -236,8 +236,8 @@ impl GodotEguiExample {
                         ui.label("And (via extension traits) capture Godot's input events (press an assigned key)");
                         let input_map = gdnative::api::InputMap::godot_singleton();
                         for action in input_map.get_actions().iter() {
-                            if let Some(action) = action.try_to_string() {
-                                if ui.is_action_pressed(action.as_str()) {
+                            if let Some(action) = action.to::<String>() {
+                                if ui.is_action_pressed(action.as_str(), false) {
                                     ui.label(action.as_str());
                                 }
                             }

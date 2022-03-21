@@ -6,8 +6,8 @@ use gdnative::api::{
     VisualServer,
 };
 
-use gdnative::nativescript::Export;
-use gdnative::nativescript::property::{EnumHint, FloatHint, RangeHint};
+use gdnative::export::Export;
+use gdnative::export::hint::{EnumHint, FloatHint, RangeHint};
 use gdnative::prelude::*;
 
 /// Contains conversion tables between Godot and egui input constants (keys, mouse buttons)
@@ -22,7 +22,7 @@ pub fn egui2color(color: egui::Color32) -> Color {
     // let as_f32 = |x| x as f32 / u8::MAX as f32;
     // Color::rgba(as_f32(c.r()), as_f32(c.g()), as_f32(c.b()), as_f32(c.a()))
     let (r, g, b, a) = egui::Rgba::from(color).to_tuple();
-    Color::rgba(r, g, b, a)
+    Color::from_rgba(r, g, b, a)
 }
 
 /// Converts a godot color into an egui color
@@ -65,7 +65,7 @@ impl FromVariant for GodotEguiInputMode {
 }
 
 impl Export for GodotEguiInputMode {
-    type Hint = gdnative::nativescript::property::IntHint<u32>;
+    type Hint = gdnative::export::hint::IntHint<u32>;
 
     fn export_info(_hint: Option<Self::Hint>) -> ExportInfo {
         Self::Hint::Enum(EnumHint::new(vec![
@@ -123,19 +123,19 @@ pub struct GodotEgui {
     theme_path: String,
 }
 
-#[gdnative::methods]
+#[methods]
 impl GodotEgui {
     fn register_properties(builder: &ClassBuilder<GodotEgui>) {
-        use gdnative::nativescript::property::StringHint;
+        use gdnative::export::hint::StringHint;
         builder
-            .add_property::<String>("EguiTheme")
+            .property::<String>("EguiTheme")
             .with_getter(move |egui: &GodotEgui, _| egui.theme_path.clone())
             .with_setter(move |egui: &mut GodotEgui, _, new_val| egui.theme_path = new_val)
             .with_default("".to_owned())
             .with_hint(StringHint::File(EnumHint::new(vec!["*.ron".to_owned(), "*.eguitheme".to_owned()])))
             .done();
         builder
-            .add_property::<f64>("pixels_per_point")
+            .property::<f64>("pixels_per_point")
             .with_getter(move |egui: &GodotEgui, _| egui.pixels_per_point)
             .with_setter(move |egui: &mut GodotEgui, _, new_value| egui.pixels_per_point = new_value)
             .with_default(1.0)
@@ -285,13 +285,12 @@ impl GodotEgui {
                 mouse_pos
             } else {
                 // NOTE: The egui is painted inside a control node, so its global rect offset must be taken into account.
-                let offset_position = mouse_pos - owner.get_global_rect().origin.to_vector();
+                let offset_position = mouse_pos - owner.get_global_rect().position;
                 // This is used to get the correct rotation when the root node is rotated.
                 owner
                     .get_global_transform()
-                    .inverse()
-                    .expect("screen space coordinates must be invertible")
-                    .transform_vector(offset_position)
+                    .affine_inverse()
+                    .xform(offset_position)
             };
             // It is necessary to translate the mouse position which refers to physical pixel position to egui's logical points
             // This is found using the inverse of current `pixels_per_point` setting.
@@ -399,9 +398,11 @@ impl GodotEgui {
             if idx >= self.meshes.len() {
                 // If there's no room for this mesh, create it:
                 let canvas_item = vs.canvas_item_create();
-                vs.canvas_item_set_parent(canvas_item, owner.get_canvas_item());
-                vs.canvas_item_set_draw_index(canvas_item, idx as i64);
-                vs.canvas_item_clear(canvas_item);
+                unsafe {
+                    vs.canvas_item_set_parent(canvas_item, owner.get_canvas_item());
+                    vs.canvas_item_set_draw_index(canvas_item, idx as i64);
+                    vs.canvas_item_clear(canvas_item)
+                };
                 self.meshes.push(VisualServerMesh { canvas_item /* , mesh: mesh.into_shared() */ });
             }
         }
@@ -409,7 +410,7 @@ impl GodotEgui {
         // Bookkeeping: Cleanup unused meshes. Pop from back to front
         for _idx in (clipped_meshes.len()..self.meshes.len()).rev() {
             let vs_mesh = self.meshes.pop().expect("This should always pop");
-            vs.free_rid(vs_mesh.canvas_item);
+            unsafe { vs.free_rid(vs_mesh.canvas_item); }
         }
 
         assert!(
@@ -422,7 +423,7 @@ impl GodotEgui {
         {
             // Skip the mesh if empty, but clear the mesh if it previously existed
             if mesh.vertices.is_empty() {
-                vs.canvas_item_clear(vs_mesh.canvas_item);
+                unsafe { vs.canvas_item_clear(vs_mesh.canvas_item); }
                 continue;
             }
 
@@ -455,7 +456,7 @@ impl GodotEgui {
                     .collect::<Vector2Array>();
                 let colors = mesh.vertices.iter().map(|x| x.color).map(egui2color).collect::<ColorArray>();
 
-                vs.canvas_item_clear(vs_mesh.canvas_item);
+                unsafe { vs.canvas_item_clear(vs_mesh.canvas_item);
                 if let egui::TextureId::Egui = mesh.texture_id {
                     vs.canvas_item_set_material(vs_mesh.canvas_item, material_rid);
                 }
@@ -477,17 +478,17 @@ impl GodotEgui {
 
                 vs.canvas_item_set_transform(
                     vs_mesh.canvas_item,
-                    Transform2D::new(pixels_per_point, 0.0, 0.0, pixels_per_point, 0.0, 0.0),
+                    Transform2D::IDENTITY.scaled(Vector2::new(pixels_per_point,pixels_per_point)),
                 );
                 vs.canvas_item_set_clip(vs_mesh.canvas_item, true);
                 vs.canvas_item_set_custom_rect(
                     vs_mesh.canvas_item,
                     true,
                     Rect2 {
-                        origin: Point2::new(clip_rect.min.x, clip_rect.min.y),
-                        size: Size2::new(clip_rect.max.x - clip_rect.min.x, clip_rect.max.y - clip_rect.min.y),
+                        position: Vector2::new(clip_rect.min.x, clip_rect.min.y),
+                        size: Vector2::new(clip_rect.max.x - clip_rect.min.x, clip_rect.max.y - clip_rect.min.y),
                     },
-                );
+                );}
             }
         }
     }
@@ -500,7 +501,7 @@ impl GodotEgui {
     fn clear(&mut self, _owner: TRef<Control>) {
         let vs = unsafe { VisualServer::godot_singleton() };
         for mesh in self.meshes.iter() {
-            vs.free_rid(mesh.canvas_item);
+            unsafe { vs.free_rid(mesh.canvas_item); }
         }
         self.meshes.clear();
     }
@@ -526,7 +527,7 @@ impl GodotEgui {
         let size = owner.get_rect().size;
         let points_per_pixel = (1.0 / self.pixels_per_point) as f32;
         raw_input.screen_rect =
-            Some(egui::Rect::from_min_size(Default::default(), egui::Vec2::new(size.width * points_per_pixel, size.height * points_per_pixel)));
+            Some(egui::Rect::from_min_size(Default::default(), egui::Vec2::new(size.x * points_per_pixel, size.y * points_per_pixel)));
 
         self.egui_ctx.begin_frame(raw_input);
 
@@ -583,7 +584,7 @@ impl Drop for GodotEgui {
     fn drop(&mut self) {
         let vs = unsafe { VisualServer::godot_singleton() };
         for mesh in self.meshes.iter() {
-            vs.free_rid(mesh.canvas_item);
+            unsafe { vs.free_rid(mesh.canvas_item) };
         }
     }
 }
