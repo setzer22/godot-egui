@@ -132,11 +132,11 @@ impl GodotEguiExample {
                         ui.label(
                             "This example registers two custom fonts. Custom fonts can be registered from the \
                              Godot Editor by setting font paths. For more control, you can also use \
-                             egui::CtxRef's set_fonts method to register fonts manually.
+                             egui::Context's set_fonts method to register fonts manually.
                          \nEgui does not currently support locally overriding a font, but you can switch the \
-                             global font priorities for an egui::CtxRef so that different fonts take precedence. \
-                             The checkbox below will reverse the vector of fonts so that the last one, our \
-                             Custom Font 2, becomes the main font.",
+                             global font priorities for an egui::Context so that different fonts take \
+                             precedence. The checkbox below will reverse the vector of fonts so that the last \
+                             one, our Custom Font 2, becomes the main font.",
                         );
                         if ui.checkbox(&mut self.use_custom_fonts, "Reverse font priorities").clicked() {
                             should_reverse_font_priorities = true;

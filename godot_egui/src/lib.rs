@@ -1,6 +1,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
+use egui::{Event, FontDefinitions};
 use gdnative::api::{
     File, GlobalConstants, ImageTexture, InputEventMouseButton, InputEventMouseMotion, VisualServer,
 };
@@ -54,7 +55,7 @@ struct SyncedTexture {
 #[inherit(gdnative::api::Control)]
 #[register_with(register_properties)]
 pub struct GodotEgui {
-    pub egui_ctx: egui::CtxRef,
+    pub egui_ctx: egui::Context,
     meshes: Vec<VisualServerMesh>,
     main_texture: SyncedTexture,
     raw_input: Rc<RefCell<egui::RawInput>>,
@@ -121,10 +122,11 @@ impl GodotEgui {
         let _ = self.egui_ctx.end_frame();
 
         // This is where "res://" points to
-        let mut font_defs = self.egui_ctx.fonts().definitions().clone();
+        //let mut font_defs = self.egui_ctx.fonts().definitions().clone();
+        let mut font_defs = FontDefinitions::default(); // TODO(bromeon): changed from egui 0.15->0.18; correct?
 
         if self.override_default_fonts {
-            font_defs.fonts_for_family.get_mut(&egui::FontFamily::Proportional).unwrap().clear()
+            font_defs.families.get_mut(&egui::FontFamily::Proportional).unwrap().clear()
         }
 
         for font_path in self
@@ -137,10 +139,11 @@ impl GodotEgui {
             match font_file.open(font_path, File::READ) {
                 Ok(_) => {
                     let file_data = font_file.get_buffer(font_file.get_len());
-                    let file_data = std::borrow::Cow::Owned(file_data.read().as_slice().to_owned());
-                    font_defs.font_data.insert(font_path.to_owned(), file_data);
+                    let file_data = file_data.read().as_slice().to_owned();
+                    let font_data = egui::FontData::from_owned(file_data);
+                    font_defs.font_data.insert(font_path.to_owned(), font_data);
                     font_defs
-                        .fonts_for_family
+                        .families
                         .get_mut(&egui::FontFamily::Proportional)
                         .unwrap()
                         .push(font_path.to_owned());
@@ -192,10 +195,12 @@ impl GodotEgui {
             if button_ev.is_pressed() {
                 match button_ev.button_index() {
                     GlobalConstants::BUTTON_WHEEL_UP => {
-                        raw_input.scroll_delta = egui::Vec2::new(0.0, 1.0) * self.scroll_speed
+                        let scroll_delta = egui::Vec2::new(0.0, 1.0) * self.scroll_speed;
+                        raw_input.events.push(Event::Scroll(scroll_delta));
                     }
                     GlobalConstants::BUTTON_WHEEL_DOWN => {
-                        raw_input.scroll_delta = egui::Vec2::new(0.0, -1.0) * self.scroll_speed
+                        let scroll_delta = egui::Vec2::new(0.0, -1.0) * self.scroll_speed;
+                        raw_input.events.push(Event::Scroll(scroll_delta));
                     }
                     _ => {}
                 }
@@ -226,7 +231,8 @@ impl GodotEgui {
 
     /// Paints a list of `egui::ClippedMesh` using the `VisualServer`
     fn paint_shapes(
-        &mut self, owner: &Control, clipped_meshes: Vec<egui::ClippedMesh>, egui_texture: &egui::Texture,
+        &mut self, owner: &Control, clipped_meshes: Vec<egui::ClippedPrimitive>,
+        egui_texture: &egui::TextureHandle,
     ) {
         let vs = unsafe { VisualServer::godot_singleton() };
 
@@ -287,8 +293,15 @@ impl GodotEgui {
         );
 
         // Paint the meshes
-        for (egui::ClippedMesh(clip_rect, mesh), vs_mesh) in clipped_meshes.into_iter().zip(self.meshes.iter_mut())
+        for (egui::ClippedPrimitive { clip_rect, primitive }, vs_mesh) in
+            clipped_meshes.into_iter().zip(self.meshes.iter_mut())
         {
+            let mesh = if let egui::epaint::Primitive::Mesh(mesh) = primitive {
+                mesh
+            } else {
+                panic!("Expected mesh; was other primitive");
+            };
+
             // Skip the mesh if empty, but clear the mesh if it previously existed
             if mesh.vertices.is_empty() {
                 unsafe {
@@ -298,7 +311,7 @@ impl GodotEgui {
             }
 
             let texture_rid = match mesh.texture_id {
-                egui::TextureId::Egui => egui_texture_rid,
+                egui::TextureId::Managed(_id) => egui_texture_rid, // TODO(bromeon): should we use id in Managed?
                 egui::TextureId::User(id) => u64_to_rid(id),
             };
 
@@ -343,8 +356,8 @@ impl GodotEgui {
         }
     }
 
-    /// Call this to draw a new frame using a closure taking a single `egui::CtxRef` parameter
-    pub fn update_ctx(&mut self, owner: &Control, draw_fn: impl FnOnce(&mut egui::CtxRef)) {
+    /// Call this to draw a new frame using a closure taking a single `egui::Context` parameter
+    pub fn update_ctx(&mut self, owner: &Control, draw_fn: impl FnOnce(&mut egui::Context)) {
         assert!(owner.get_parent().is_some(), "GodotEgui must be attached in the scene tree");
 
         // Collect input
@@ -358,7 +371,7 @@ impl GodotEgui {
         draw_fn(&mut self.egui_ctx);
 
         // Render GUI
-        let (_output, shapes) = self.egui_ctx.end_frame();
+        let egui::FullOutput { shapes, .. } = self.egui_ctx.end_frame();
 
         // Each frame, we set the mouse_was_captured flag so that we know whether egui should be
         // consuming mouse events or not. This may introduce a one-frame lag in capturing input, but in practice it
@@ -377,7 +390,7 @@ impl GodotEgui {
             // Run user code
             egui::CentralPanel::default()
                 .frame(frame.unwrap_or(egui::Frame {
-                    margin: egui::Vec2::new(10.0, 10.0),
+                    inner_margin: egui::style::Margin::symmetric(10.0, 10.0),
                     fill: (egui::Color32::from_white_alpha(0)),
                     ..Default::default()
                 }))
