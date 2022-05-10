@@ -13,7 +13,6 @@ pub(crate) mod enum_conversions;
 /// Some helper functions and traits for godot-egui
 pub mod egui_helpers;
 
-
 /// Converts an egui color into a godot color
 pub fn egui2color(c: egui::Color32) -> Color {
     let as_f32 = |x| x as f32 / u8::MAX as f32;
@@ -115,8 +114,8 @@ impl GodotEgui {
 
     /// Run when this node is added to the scene tree. Runs some initialization logic, like registering any
     /// custom fonts defined as properties
-    #[export]
-    fn _ready(&mut self, _owner: TRef<Control>) {
+    #[godot]
+    fn _ready(&mut self) {
         // Run a single dummy frame to ensure the fonts are created, otherwise egui panics
         self.egui_ctx.begin_frame(egui::RawInput::default());
         let _ = self.egui_ctx.end_frame();
@@ -134,7 +133,6 @@ impl GodotEgui {
             .filter(|x| x.as_ref().map(|x| !x.is_empty()).unwrap_or(false))
             .map(|x| x.as_ref().unwrap())
         {
-
             let font_file = gdnative::api::File::new();
             match font_file.open(font_path, File::READ) {
                 Ok(_) => {
@@ -163,8 +161,8 @@ impl GodotEgui {
     }
 
     /// Callback to listen for input. Translates input back to egui events.
-    #[export]
-    fn _input(&mut self, owner: TRef<Control>, event: Ref<InputEvent>) {
+    #[godot]
+    fn _input(&mut self, #[base] owner: TRef<Control>, event: Ref<InputEvent>) {
         let event = unsafe { event.assume_safe() };
         let mut raw_input = self.raw_input.borrow_mut();
 
@@ -278,7 +276,9 @@ impl GodotEgui {
         // Bookkeeping: Cleanup unused meshes. Pop from back to front
         for _idx in (clipped_meshes.len()..self.meshes.len()).rev() {
             let vs_mesh = self.meshes.pop().expect("This should always pop");
-            unsafe { vs.free_rid(vs_mesh.canvas_item); }
+            unsafe {
+                vs.free_rid(vs_mesh.canvas_item);
+            }
         }
 
         assert!(
@@ -291,7 +291,9 @@ impl GodotEgui {
         {
             // Skip the mesh if empty, but clear the mesh if it previously existed
             if mesh.vertices.is_empty() {
-                unsafe { vs.canvas_item_clear(vs_mesh.canvas_item); }
+                unsafe {
+                    vs.canvas_item_clear(vs_mesh.canvas_item);
+                }
                 continue;
             }
 
@@ -370,9 +372,7 @@ impl GodotEgui {
     /// Call this to draw a new frame using a closure taking an `egui::Ui` parameter. Prefer this over
     /// `update_ctx` if the `CentralPanel` is going to be used for convenience. Accepts an optional
     /// `egui::Frame` to draw the panel background
-    pub fn update(
-        &mut self, owner: &Control, frame: Option<egui::Frame>, draw_fn: impl FnOnce(&mut egui::Ui),
-    ) {
+    pub fn update(&mut self, owner: &Control, frame: Option<egui::Frame>, draw_fn: impl FnOnce(&mut egui::Ui)) {
         self.update_ctx(owner, |egui_ctx| {
             // Run user code
             egui::CentralPanel::default()
@@ -390,11 +390,12 @@ impl GodotEgui {
 
 /// Helper method that registers all GodotEgui `NativeClass` objects as scripts.
 /// ## Note
-/// This method should not be used in any library where `register_classes_as_tool` is run. Doing so may result in `gdnative` errors.
+/// This method should not be used in any library where `register_classes_as_tool` is run. Doing so may result
+/// in `gdnative` errors.
 pub fn register_classes(handle: InitHandle) { handle.add_class::<GodotEgui>(); }
 
-/// Helper method that registers all GodotEgui `NativeClass` objects as tool scripts. This should **only** be used when GodotEgui is to be run inside the Godot editor.
-/// ## Note
-/// This method should not be used in any library where `register_classes` is run. Doing so may result in `gdnative` errors. 
+/// Helper method that registers all GodotEgui `NativeClass` objects as tool scripts. This should **only** be
+/// used when GodotEgui is to be run inside the Godot editor. ## Note
+/// This method should not be used in any library where `register_classes` is run. Doing so may result in
+/// `gdnative` errors.
 pub fn register_classes_as_tool(handle: InitHandle) { handle.add_tool_class::<GodotEgui>(); }
-
