@@ -14,4 +14,4 @@ workspace = ".."
 [dependencies]
 gdnative = { git = "https://github.com/godot-rust/godot-rust.git", branch = "master"}
 #gdnative = "0.10"
-egui = "0.15"
+egui = "0.18.1"

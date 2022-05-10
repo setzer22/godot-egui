@@ -17,7 +17,7 @@ pub fn progress_bar(ui: &mut egui::Ui, progress: f32) -> egui::Response {
         rect.center(),
         egui::Align2::CENTER_CENTER,
         format!("{:.2}", progress),
-        egui::TextStyle::Body,
+        egui::FontId::proportional(24.0), // TODO(bromeon): which size?
         ui.style().visuals.text_color(),
     );
 
