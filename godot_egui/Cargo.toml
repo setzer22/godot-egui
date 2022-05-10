@@ -12,6 +12,6 @@ readme = "../README.md"
 workspace = ".."
 
 [dependencies]
-#gdnative = { git = "https://github.com/godot-rust/godot-rust.git", branch = "master"}
-gdnative = "0.10.0-rc.0"
+gdnative = { git = "https://github.com/godot-rust/godot-rust.git", branch = "master"}
+#gdnative = "0.10"
 egui = "0.15"
