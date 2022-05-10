@@ -34,8 +34,8 @@ impl GodotEguiExample {
         }
     }
 
-    #[export]
-    pub fn _ready(&mut self, owner: TRef<Control>) {
+    #[godot]
+    pub fn _ready(&mut self, #[base] owner: TRef<Control>) {
         godot_print!("Initializing godot egui");
         let gui = owner
             .get_node("GodotEgui")
@@ -58,8 +58,8 @@ impl GodotEguiExample {
         .name("wave")
     }
 
-    #[export]
-    pub fn _process(&mut self, _owner: TRef<Control>, delta: f64) {
+    #[godot]
+    pub fn _process(&mut self, delta: f64) {
         let gui = unsafe { self.gui.as_ref().expect("GUI initialized").assume_safe() };
 
         self.elapsed_time += delta;
