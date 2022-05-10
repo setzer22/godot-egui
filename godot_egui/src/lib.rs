@@ -12,6 +12,7 @@ use gdnative::api::{
 use gdnative::api::File;
 
 use gdnative::export::{hint::EnumHint, Export};
+use gdnative::export::hint::StringHint;
 use gdnative::prelude::*;
 
 /// Contains conversion tables between Godot and egui input constants (keys, mouse buttons)
