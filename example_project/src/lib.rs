@@ -66,7 +66,7 @@ impl GodotEguiExample {
 
         // A frame can be passed to `update` specifying background color, margin and other properties
         // You may also want to pass in `None` and draw a background using a regular Panel node instead.
-        let frame = egui::Frame { margin: egui::vec2(20.0, 20.0), ..Default::default() };
+        let frame = egui::Frame { inner_margin: egui::style::Margin::symmetric(20.0, 20.0), ..Default::default() };
 
         let mut should_reverse_font_priorities = false;
 
@@ -102,12 +102,12 @@ impl GodotEguiExample {
 
                         ui.heading("You can even plot graphs");
                         ui.add_space(5.0);
-
-                        let plot = egui::plot::Plot::new("plot_example")
-                            .line(self.sin_plot())
+                        
+                        egui::plot::Plot::new("plot_example")
                             .width(400.0)
-                            .view_aspect(4.0 / 3.0);
-                        ui.add(plot);
+                            .view_aspect(4.0 / 3.0)
+                            .show(ui, |ui| ui.line(self.sin_plot()));
+                        // ui.add(plot);
 
                         ui.heading("Or use your custom images");
                         ui.add_space(5.0);
@@ -162,25 +162,26 @@ impl GodotEguiExample {
                         });
                     });
                 });
-
+                // TODO: How fonts are stored has completely changed so this will need to be redone.
                 if self.show_font_settings {
-                    let mut font_definitions = ctx.fonts().definitions().clone();
-                    egui::Window::new("Settings").open(&mut self.show_font_settings).show(ctx, |ui| {
-                        use egui::Widget;
-                        font_definitions.ui(ui);
-                        ui.fonts().texture().ui(ui);
+                //     let mut font_definitions = ctx.fonts().definitions().clone();
+                    egui::Window::new("Settings").open(&mut self.show_font_settings).show(ctx, |_ui| {
+                //         use egui::Widget;
+                //         font_definitions.ui(ui);
+                //         ui.fonts().texture().ui(ui);
                     });
-                    ctx.set_fonts(font_definitions);
+                //     ctx.set_fonts(font_definitions);
                 }
             });
 
-            if should_reverse_font_priorities {
-                gui.update_ctx(&instance, |ctx| {
-                    let mut font_defs = ctx.fonts().definitions().clone();
-                    font_defs.fonts_for_family.get_mut(&egui::FontFamily::Proportional).unwrap().reverse();
-                    ctx.set_fonts(font_defs);
-                })
-            }
+            // TODO: How fonts are stored has completely changed so this will need to be redone.
+            // if should_reverse_font_priorities {
+            //     gui.update_ctx(&instance, |ctx| {
+            //         let mut font_defs = ctx.fonts().definitions().clone();
+            //         font_defs.fonts_for_family.get_mut(&egui::FontFamily::Proportional).unwrap().reverse();
+            //         ctx.set_fonts(font_defs);
+            //     })
+            // }
         })
         .expect("Map mut should succeed");
     }

@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::rc::Rc;
 
 use egui::{Event, FontDefinitions};
@@ -43,12 +44,6 @@ struct VisualServerMesh {
     canvas_item: Rid,
 }
 
-/// Holds the data for the egui main texture in Godot memory.
-struct SyncedTexture {
-    texture_version: Option<u64>,
-    godot_texture: Ref<ImageTexture>,
-}
-
 /// Core type to draw egui-based controls in Godot.
 /// The `update` or `update_ctx` methods can be used to draw a new frame.
 #[derive(NativeClass)]
@@ -57,7 +52,7 @@ struct SyncedTexture {
 pub struct GodotEgui {
     pub egui_ctx: egui::Context,
     meshes: Vec<VisualServerMesh>,
-    main_texture: SyncedTexture,
+    textures: HashMap<egui::TextureId, Ref<ImageTexture>>,
     raw_input: Rc<RefCell<egui::RawInput>>,
     mouse_was_captured: bool,
 
@@ -99,10 +94,7 @@ impl GodotEgui {
         GodotEgui {
             egui_ctx: Default::default(),
             meshes: vec![],
-            main_texture: SyncedTexture {
-                texture_version: None,
-                godot_texture: ImageTexture::new().into_shared(),
-            },
+            textures: HashMap::new(),
             raw_input: Rc::new(RefCell::new(egui::RawInput::default())),
             mouse_was_captured: false,
             override_default_fonts: false,
@@ -229,41 +221,87 @@ impl GodotEgui {
         }
     }
 
+    fn set_texture(&mut self, texture_id: egui::TextureId, delta: &egui::epaint::ImageDelta) {
+        let texture_flags = if self.disable_texture_filtering { 0 } else { Texture::FLAG_FILTER | Texture::FLAG_MIPMAPS };
+
+        let texture = &*self.textures
+            .entry(texture_id)
+            .or_insert_with(|| {
+            assert!(delta.pos.is_none(), "when creating a new texture, the delta must be the full texture");
+            let image = Image::new();
+            image.create(
+                delta.image.width() as i64,
+                delta.image.height() as i64,
+                false,
+                Image::FORMAT_RGBA8,
+            );
+            let texture = ImageTexture::new();
+            texture.create_from_image(
+                image,
+                texture_flags
+            );
+            texture.into_shared()
+        });
+        let texture = unsafe { texture.assume_safe() };
+        
+        let texture_pos = &delta.pos;
+        let pixel_delta: ByteArray = match &delta.image {
+            egui::ImageData::Color(egui_image) => {
+                assert_eq!(
+                    egui_image.width() * egui_image.height(),
+                    egui_image.pixels.len(),
+                    "Mismatch between texture size and texel count"
+                );
+                // Get the last image texture reference
+                egui_image.pixels.iter().flat_map(|color| color.to_array()).collect()
+            },
+            egui::ImageData::Font(egui_image) => {
+                assert_eq!(
+                    egui_image.width() * egui_image.height(),
+                    egui_image.pixels.len(),
+                    "Mismatch between texture size and texel count"
+                );
+                // I don't really know what this is for but it was 
+                let gamma = 1.0/2.2;
+                egui_image.srgba_pixels(gamma).flat_map(|a| a.to_array()).collect()
+            }
+        };
+        let pixels = if let Some(pos) = texture_pos {
+            let insertion_start = pos[0] as i32 * pos[1] as i32;
+            let image = texture.get_data().expect("this must exist");
+            let mut data = unsafe { image.assume_safe().get_data() };
+            for idx in 0 .. pixel_delta.len() {
+                data.set(insertion_start, pixel_delta.get(idx));
+            }
+            data
+        } else {
+            pixel_delta
+        };
+        let image = Image::new();
+        image.create_from_data(
+            delta.image.width() as i64,
+            delta.image.height() as i64,
+            false,
+            Image::FORMAT_RGBA8,
+            pixels
+        );
+
+        texture.set_data(image);
+    }
+
     /// Paints a list of `egui::ClippedMesh` using the `VisualServer`
     fn paint_shapes(
-        &mut self, owner: &Control, clipped_meshes: Vec<egui::ClippedPrimitive>,
-        egui_texture: &egui::TextureHandle,
+        &mut self, owner: &Control,
+        clipped_meshes: Vec<egui::ClippedPrimitive>,
+        egui_texture_deltas: egui::TexturesDelta,
     ) {
         let vs = unsafe { VisualServer::godot_singleton() };
 
-        // Sync egui's texture to our Godot texture, only when needed
-        if self.main_texture.texture_version != Some(egui_texture.version) {
-            let pixels: ByteArray =
-                egui_texture.pixels.iter().map(|alpha| [255u8, 255u8, 255u8, *alpha]).flatten().collect();
-
-            let image = Image::new();
-            image.create_from_data(
-                egui_texture.width as i64,
-                egui_texture.height as i64,
-                false,
-                Image::FORMAT_RGBA8,
-                pixels,
-            );
-
-            self.main_texture.texture_version = Some(egui_texture.version);
-
-            let new_tex = ImageTexture::new();
-            // NOTE: It's important for the texture to be non-repeating.
-            // This is because the egui texture has a full white pixel at (0,0), which is used by many opaque
-            // shapes. When using the default flags, blending + wrapping end up lowering the alpha of
-            // the pixel at (0,0)
-            let flags =
-                if self.disable_texture_filtering { 0 } else { Texture::FLAG_FILTER | Texture::FLAG_MIPMAPS };
-            new_tex.create_from_image(image, flags);
-            self.main_texture.godot_texture = new_tex.into_shared();
+        for (id, image_delta) in &egui_texture_deltas.set {
+            self.set_texture(*id, image_delta)
         }
-
-        let egui_texture_rid = unsafe { self.main_texture.godot_texture.assume_safe() }.get_rid();
+        
+        // let egui_texture_rid = unsafe { self.main_texture.godot_texture.assume_safe() }.get_rid();q
 
         // Bookkeeping: Create more canvas items if needed.
         for idx in 0..clipped_meshes.len() {
@@ -311,7 +349,12 @@ impl GodotEgui {
             }
 
             let texture_rid = match mesh.texture_id {
-                egui::TextureId::Managed(_id) => egui_texture_rid, // TODO(bromeon): should we use id in Managed?
+                egui::TextureId::Managed(_id) => unsafe {
+                    self.textures.get(&mesh.texture_id)
+                        .expect("this must exist")
+                        .assume_safe()
+                        .get_rid()
+                },
                 egui::TextureId::User(id) => u64_to_rid(id),
             };
 
@@ -354,6 +397,10 @@ impl GodotEgui {
                 });
             }
         }
+
+        for &id in &egui_texture_deltas.free {
+            self.textures.remove(&id);
+        }
     }
 
     /// Call this to draw a new frame using a closure taking a single `egui::Context` parameter
@@ -371,7 +418,10 @@ impl GodotEgui {
         draw_fn(&mut self.egui_ctx);
 
         // Render GUI
-        let egui::FullOutput { shapes, .. } = self.egui_ctx.end_frame();
+        let egui::FullOutput { shapes,
+            textures_delta,
+            ..
+        } = self.egui_ctx.end_frame();
 
         // Each frame, we set the mouse_was_captured flag so that we know whether egui should be
         // consuming mouse events or not. This may introduce a one-frame lag in capturing input, but in practice it
@@ -379,7 +429,7 @@ impl GodotEgui {
         self.mouse_was_captured = self.egui_ctx.is_using_pointer();
 
         let clipped_meshes = self.egui_ctx.tessellate(shapes);
-        self.paint_shapes(owner, clipped_meshes, &self.egui_ctx.texture());
+        self.paint_shapes(owner, clipped_meshes, textures_delta);
     }
 
     /// Call this to draw a new frame using a closure taking an `egui::Ui` parameter. Prefer this over
