@@ -267,11 +267,18 @@ impl GodotEgui {
             }
         };
         let pixels = if let Some(pos) = texture_pos {
-            let insertion_start = pos[0] as i32 * pos[1] as i32;
+            assert_eq!(delta.image.width() * delta.image.height() * 4, pixel_delta.len() as usize, "delta is not compatible with the pixels");
+            // let insertion_start = pos[0] * pos[1];
             let image = texture.get_data().expect("this must exist");
+            
             let mut data = unsafe { image.assume_safe().get_data() };
-            for idx in 0 .. pixel_delta.len() {
-                data.set(insertion_start, pixel_delta.get(idx));
+            // width is multiplied by 4 as a magic number due as these are bytes.
+
+            for x in pos[0]..delta.image.width() * 4 {
+                for y in pos[1]..delta.image.height() {
+                    let idx = x * y;
+                    data.set(idx as i32, pixel_delta.get(idx as i32));
+                }
             }
             data
         } else {
