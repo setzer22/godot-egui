@@ -22,7 +22,6 @@ pub struct GodotEguiExample {
     slider_value: f32,
     icon_1: Ref<Texture>,
     icon_2: Ref<Texture>,
-    use_custom_fonts: bool,
     show_font_settings: bool,
     text_edit_text: String,
 
@@ -36,7 +35,7 @@ pub struct GodotEguiExample {
     handle_input: bool,
 }
 
-#[gdnative::methods]
+#[gdnative::derive::methods]
 impl GodotEguiExample {
     pub fn new(_owner: TRef<Control>) -> Self {
         Self {
@@ -48,7 +47,6 @@ impl GodotEguiExample {
             elapsed_time: 0.0,
             icon_1: load_texture("res://icon.png"),
             icon_2: load_texture("res://icon_ferris.png"),
-            use_custom_fonts: false,
             show_font_settings: false,
             text_edit_text: "This is a text edit!".to_owned(),
             dynamically_change_pixels_per_point: false,
@@ -58,15 +56,14 @@ impl GodotEguiExample {
     }
 
     #[export]
-    #[gdnative::profiled]
     pub fn _ready(&mut self, owner: TRef<Control>) {
+        godot_print!("Initializing godot egui");
         owner.set_process_input(self.handle_input);
         if self.handle_gui_input {
             owner.set_mouse_filter(Control::MOUSE_FILTER_STOP);
         } else {
             owner.set_mouse_filter(Control::MOUSE_FILTER_IGNORE);
         }
-        godot_print!("Initializing godot egui");
         let gui = owner
             .get_node("GodotEgui")
             .and_then(|godot_egui| unsafe { godot_egui.assume_safe() }.cast::<Control>())
@@ -89,7 +86,6 @@ impl GodotEguiExample {
     }
     /// Updates egui from the `_input` callback
     #[export]
-    #[gdnative::profiled]
     pub fn _input(&mut self, owner: TRef<Control>, event: Ref<InputEvent>) {
         let gui = unsafe { self.gui.as_ref().expect("GUI initialized").assume_safe() };
         gui.map_mut(|gui, instance| {
@@ -104,7 +100,6 @@ impl GodotEguiExample {
 
     /// Updates egui from the `_gui_input` callback
     #[export]
-    #[gdnative::profiled]
     pub fn _gui_input(&mut self, owner: TRef<Control>, event: Ref<InputEvent>) {
         let gui = unsafe { self.gui.as_ref().expect("GUI initialized").assume_safe() };
         gui.map_mut(|gui, instance| {
@@ -116,7 +111,6 @@ impl GodotEguiExample {
         .expect("map_mut should succeed");
     }
     #[export]
-    #[gdnative::profiled]
     pub fn _process(&mut self, _owner: TRef<Control>, delta: f64) {
         let gui = unsafe { self.gui.as_ref().expect("GUI initialized").assume_safe() };
 
@@ -124,9 +118,7 @@ impl GodotEguiExample {
 
         // A frame can be passed to `update` specifying background color, margin and other properties
         // You may also want to pass in `None` and draw a background using a regular Panel node instead.
-        let frame = egui::Frame { margin: egui::vec2(20.0, 20.0), ..Default::default() };
-
-        let mut should_reverse_font_priorities = false;
+        let frame = egui::Frame { inner_margin: egui::style::Margin::symmetric(20.0, 20.0), ..Default::default() };
 
         gui.map_mut(|gui, instance| {
             // This resizes the window each frame based on a sine wave
@@ -136,7 +128,7 @@ impl GodotEguiExample {
 
             // We use the `update` method here to just draw a simple UI on the central panel. If you need more
             // fine-grained control, you can use update_ctx to get access to egui's context directly.
-            gui.update_ctx(instance, /* Some(frame), */ |ctx| {
+            gui.update_ctx(&instance, /* Some(frame), */ |ctx| {
                 egui::CentralPanel::default().frame(frame).show(ctx, |ui| {
                     ui.columns(2, |columns| {
                         let ui = &mut columns[0];
@@ -161,12 +153,12 @@ impl GodotEguiExample {
 
                         ui.heading("You can even plot graphs");
                         ui.add_space(5.0);
-
-                        let plot = egui::plot::Plot::new("plot_example")
-                            .line(self.sin_plot())
+                        
+                        egui::plot::Plot::new("plot_example")
                             .width(400.0)
-                            .view_aspect(4.0 / 3.0);
-                        ui.add(plot);
+                            .view_aspect(4.0 / 3.0)
+                            .show(ui, |ui| ui.line(self.sin_plot()));
+                        // ui.add(plot);
 
                         ui.heading("Or use your custom images");
                         ui.add_space(5.0);
@@ -191,15 +183,8 @@ impl GodotEguiExample {
                         ui.label(
                             "This example registers two custom fonts. Custom fonts can be registered from the \
                              Godot Editor by setting font paths. For more control, you can also use \
-                             egui::CtxRef's set_fonts method to register fonts manually.
-                         \nEgui does not currently support locally overriding a font, but you can switch the \
-                             global font priorities for an egui::CtxRef so that different fonts take precedence. \
-                             The checkbox below will reverse the vector of fonts so that the last one, our \
-                             Custom Font 2, becomes the main font.",
+                             egui::Context's set_fonts method to register fonts manually.",
                         );
-                        if ui.checkbox(&mut self.use_custom_fonts, "Reverse font priorities").clicked() {
-                            should_reverse_font_priorities = true;
-                        }
 
                         ComboBox::from_label("This is a combo box")
                             .selected_text(format!("{}", self.combox_box_value))
@@ -226,7 +211,7 @@ impl GodotEguiExample {
                         ui.add_space(5.0);
 
                         ui.horizontal(|ui| {
-                            ui.label("You can also configure font settings, check it out:");
+                            ui.label("You can also configure style settings, check it out:");
                             if ui.button("Font settings").clicked() {
                                 self.show_font_settings = true;
                             }
@@ -244,25 +229,13 @@ impl GodotEguiExample {
                         }
                     });
                 });
-
+                // TODO: How fonts are stored has completely changed so this will need to be redone if it is desired in the sample project.
                 if self.show_font_settings {
-                    let mut font_definitions = ctx.fonts().definitions().clone();
-                    egui::Window::new("Settings").open(&mut self.show_font_settings).show(ctx, |ui| {
-                        use egui::Widget;
-                        font_definitions.ui(ui);
-                        ui.fonts().texture().ui(ui);
+                    egui::Window::new("Style Settings").open(&mut self.show_font_settings).show(ctx, |ui| {
+                        ctx.style_ui(ui)
                     });
-                    ctx.set_fonts(font_definitions);
                 }
             });
-
-            if should_reverse_font_priorities {
-                gui.update_ctx(instance, |ctx| {
-                    let mut font_defs = ctx.fonts().definitions().clone();
-                    font_defs.fonts_for_family.get_mut(&egui::FontFamily::Proportional).unwrap().reverse();
-                    ctx.set_fonts(font_defs);
-                })
-            }
         })
         .expect("Map mut should succeed");
     }
