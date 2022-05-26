@@ -98,6 +98,7 @@ impl GodotEgui {
             raw_input: Rc::new(RefCell::new(egui::RawInput::default())),
             mouse_was_captured: false,
             override_default_fonts: false,
+            // reverse_font_priority: false,
             custom_fonts: [None, None, None, None, None],
             scroll_speed: 20.0,
             consume_mouse_events: true,
@@ -114,8 +115,7 @@ impl GodotEgui {
         let _ = self.egui_ctx.end_frame();
 
         // This is where "res://" points to
-        //let mut font_defs = self.egui_ctx.fonts().definitions().clone();
-        let mut font_defs = FontDefinitions::default(); // TODO(bromeon): changed from egui 0.15->0.18; correct?
+        let mut font_defs = FontDefinitions::default();
 
         if self.override_default_fonts {
             font_defs.families.get_mut(&egui::FontFamily::Proportional).unwrap().clear()
