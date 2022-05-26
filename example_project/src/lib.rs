@@ -15,7 +15,6 @@ pub struct GodotEguiExample {
     checkbox: bool,
     icon_1: Ref<Texture>,
     icon_2: Ref<Texture>,
-    use_custom_fonts: bool,
     show_font_settings: bool,
 }
 
@@ -29,7 +28,6 @@ impl GodotEguiExample {
             elapsed_time: 0.0,
             icon_1: load_texture("res://icon.png"),
             icon_2: load_texture("res://icon_ferris.png"),
-            use_custom_fonts: false,
             show_font_settings: false,
         }
     }
@@ -67,8 +65,6 @@ impl GodotEguiExample {
         // A frame can be passed to `update` specifying background color, margin and other properties
         // You may also want to pass in `None` and draw a background using a regular Panel node instead.
         let frame = egui::Frame { inner_margin: egui::style::Margin::symmetric(20.0, 20.0), ..Default::default() };
-
-        let mut should_reverse_font_priorities = false;
 
         gui.map_mut(|gui, instance| {
             // We use the `update` method here to just draw a simple UI on the central panel. If you need more
@@ -132,15 +128,8 @@ impl GodotEguiExample {
                         ui.label(
                             "This example registers two custom fonts. Custom fonts can be registered from the \
                              Godot Editor by setting font paths. For more control, you can also use \
-                             egui::Context's set_fonts method to register fonts manually.
-                         \nEgui does not currently support locally overriding a font, but you can switch the \
-                             global font priorities for an egui::Context so that different fonts take \
-                             precedence. The checkbox below will reverse the vector of fonts so that the last \
-                             one, our Custom Font 2, becomes the main font.",
+                             egui::Context's set_fonts method to register fonts manually.",
                         );
-                        if ui.checkbox(&mut self.use_custom_fonts, "Reverse font priorities").clicked() {
-                            should_reverse_font_priorities = true;
-                        }
 
                         ui.add_space(5.0);
 
@@ -155,33 +144,20 @@ impl GodotEguiExample {
                         ui.add_space(5.0);
 
                         ui.horizontal(|ui| {
-                            ui.label("You can also configure font settings, check it out:");
+                            ui.label("You can also configure style settings, check it out:");
                             if ui.button("Font settings").clicked() {
                                 self.show_font_settings = true;
                             }
                         });
                     });
                 });
-                // TODO: How fonts are stored has completely changed so this will need to be redone.
+                // TODO: How fonts are stored has completely changed so this will need to be redone if it is desired in the sample project.
                 if self.show_font_settings {
-                //     let mut font_definitions = ctx.fonts().definitions().clone();
-                    egui::Window::new("Settings").open(&mut self.show_font_settings).show(ctx, |_ui| {
-                //         use egui::Widget;
-                //         font_definitions.ui(ui);
-                //         ui.fonts().texture().ui(ui);
+                    egui::Window::new("Style Settings").open(&mut self.show_font_settings).show(ctx, |ui| {
+                        ctx.style_ui(ui)
                     });
-                //     ctx.set_fonts(font_definitions);
                 }
             });
-
-            // TODO: How fonts are stored has completely changed so this will need to be redone.
-            // if should_reverse_font_priorities {
-            //     gui.update_ctx(&instance, |ctx| {
-            //         let mut font_defs = ctx.fonts().definitions().clone();
-            //         font_defs.fonts_for_family.get_mut(&egui::FontFamily::Proportional).unwrap().reverse();
-            //         ctx.set_fonts(font_defs);
-            //     })
-            // }
         })
         .expect("Map mut should succeed");
     }

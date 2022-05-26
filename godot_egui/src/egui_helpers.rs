@@ -1,4 +1,4 @@
-pub fn progress_bar(ui: &mut egui::Ui, progress: f32) -> egui::Response {
+pub fn progress_bar(ui: &mut egui::Ui, progress: f32, font_size: f32) -> egui::Response {
     let desired_size = ui.spacing().interact_size.y * egui::vec2(8.0, 0.8);
     let (rect, response) = ui.allocate_exact_size(desired_size, egui::Sense::hover());
 
@@ -17,7 +17,7 @@ pub fn progress_bar(ui: &mut egui::Ui, progress: f32) -> egui::Response {
         rect.center(),
         egui::Align2::CENTER_CENTER,
         format!("{:.2}", progress),
-        egui::FontId::proportional(24.0), // TODO(bromeon): which size?
+        egui::FontId::proportional(font_size),
         ui.style().visuals.text_color(),
     );
 
