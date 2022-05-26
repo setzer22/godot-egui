@@ -24,4 +24,5 @@ common/enable_pause_aware_picking=true
 
 [rendering]
 
+batching/parameters/batch_buffer_size=65535
 environment/default_environment="res://default_env.tres"
