@@ -153,20 +153,20 @@ pub trait InputMapExt {
         Input::godot_singleton().get_current_cursor_shape()
     }
     #[inline]
-    fn action_strength(&self, action: impl Into<GodotString>) -> f64 {
-        Input::godot_singleton().get_action_strength(action)
+    fn action_strength(&self, action: impl Into<GodotString>, exact: bool) -> f64 {
+        Input::godot_singleton().get_action_strength(action, exact)
     }
     #[inline]
-    fn is_action_pressed(&self, action: impl Into<GodotString>) -> bool {
-        Input::godot_singleton().is_action_pressed(action)
+    fn is_action_pressed(&self, action: impl Into<GodotString>, exact: bool) -> bool {
+        Input::godot_singleton().is_action_pressed(action, exact)
     }
     #[inline]
-    fn is_action_just_pressed(&self, action: impl Into<GodotString>) -> bool {
-        Input::godot_singleton().is_action_just_pressed(action)
+    fn is_action_just_pressed(&self, action: impl Into<GodotString>, exact: bool) -> bool {
+        Input::godot_singleton().is_action_just_pressed(action, exact)
     }
     #[inline]
-    fn is_action_just_released(&self, action: impl Into<GodotString>) -> bool {
-        Input::godot_singleton().is_action_just_released(action)
+    fn is_action_just_released(&self, action: impl Into<GodotString>, exact: bool) -> bool {
+        Input::godot_singleton().is_action_just_released(action, exact)
     }
     #[inline]
     fn parse_input_event(&self, event: impl AsArg<InputEvent>) {

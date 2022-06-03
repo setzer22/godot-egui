@@ -1,7 +1,7 @@
 [package]
 name = "godot_egui_example"
 version = "0.1.0"
-authors = ["Setzer22"]
+authors = ["Setzer22", "Jacobsky"]
 publish = false
 edition = "2018"
 workspace = ".."
@@ -12,4 +12,5 @@ crate-type = ["cdylib"]
 [dependencies]
 gdnative = "0.10"
 egui = "0.18"
+egui_demo_lib = "0.18"
 godot_egui = { path = "../godot_egui" }

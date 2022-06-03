@@ -69,7 +69,10 @@ impl GodotEguiExample {
             .and_then(|godot_egui| unsafe { godot_egui.assume_safe() }.cast::<Control>())
             .and_then(|godot_egui| godot_egui.cast_instance::<GodotEgui>())
             .expect("Expected a `GodotEgui` child with the GodotEgui nativescript class.");
-
+        gui.map_mut(|gui, o|{
+            gui.register_godot_texture(self.icon_1.to_owned());
+            gui.register_godot_texture(self.icon_2.to_owned());
+        }).expect("this should have worked");
         self.gui = Some(gui.claim());
     }
 
@@ -221,10 +224,12 @@ impl GodotEguiExample {
                         ui.label("And (via extension traits) capture Godot's input events (press an assigned key)");
                         let input_map = gdnative::api::InputMap::godot_singleton();
                         for action in input_map.get_actions().iter() {
-                            if let Some(action) = action.try_to_string() {
-                                if ui.is_action_pressed(action.as_str()) {
+                            if let Ok(action) = action.try_to::<String>() {
+                                if ui.is_action_pressed(action.as_str(), true) {
                                     ui.label(action.as_str());
                                 }
+                            } else {
+                                godot_error!("{action} is not a valid `String` this is likely a godot bug");
                             }
                         }
                     });

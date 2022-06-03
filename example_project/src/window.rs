@@ -13,7 +13,7 @@ impl GodotEguiWindowExample {
         Self { gui: None }
     }
     #[export]
-    #[gdnative::profiled]
+    #[profiled]
     pub fn _ready(&mut self, owner: TRef<Control>) {
         godot_print!("Initializing godot egui");
         let gui = owner
@@ -27,7 +27,7 @@ impl GodotEguiWindowExample {
 
     /// Updates egui from the `_gui_input` callback
     #[export]
-    #[gdnative::profiled]
+    #[profiled]
     pub fn _gui_input(&mut self, owner: TRef<Control>, event: Ref<InputEvent>) {
         let gui = unsafe { self.gui.as_ref().expect("GUI initialized").assume_safe() };
         gui.map_mut(|gui, instance| {
@@ -43,7 +43,7 @@ impl GodotEguiWindowExample {
         if let Some(gui) = &self.gui {
             let gui = unsafe { gui.assume_safe() };
             gui.map_mut(|egui, o| {
-                egui.update_ctx(o, |ctx| {
+                egui.update_ctx(o.as_ref(), |ctx| {
                     egui::Window::new("Test Window")
                         .frame(egui::Frame::default())
                         .min_height(100.0)
