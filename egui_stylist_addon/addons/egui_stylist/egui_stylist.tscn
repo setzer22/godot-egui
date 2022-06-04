@@ -16,21 +16,25 @@ __meta__ = {
 [node name="godot_egui" type="Control" parent="."]
 anchor_right = 1.0
 anchor_bottom = 1.0
-focus_mode = 1
+mouse_filter = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 script = ExtResource( 2 )
 __meta__ = {
 "_edit_use_anchors_": false
 }
+reactive_update = true
+input_mode = {
+"None": {
+}
+}
 scroll_speed = 20.0
-consume_mouse_events = true
 disable_texture_filtering = false
-EguiTheme = "res://addons/egui_stylist/godot-editor.eguitheme"
+EguiTheme = "res://testtheme.eguitheme"
 
 [node name="file_dialog" type="FileDialog" parent="."]
 margin_right = 315.0
 margin_bottom = 130.0
 dialog_hide_on_ok = true
-filters = PoolStringArray( "*.ron; Ron format", "*.eguitheme; egui theme format", "*.tres; Godot Resource format" )
+filters = PoolStringArray( "*.ron; Ron format", "*.eguitheme; egui theme format" )
 show_hidden_files = true

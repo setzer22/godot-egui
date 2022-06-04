@@ -161,7 +161,7 @@ Should be as simple as:
 
 Godot Egui supports themes based on the `egui-theme` module of [egui-stylist](https://github.com/jacobsky/egui-stylist/) and ships with two addons that can be used to create export and automatically import themes into a godot usable format.
 
-Themes are based on the `egui::Style` and `egui::FontDefinitions` structs and are fully configurable and support Serialization and Deserialization via any Serialization format that you can support.
+Themes are an intermediate format that will allow for more flexible serialization of `egui::Style` and `egui::FontDefinitions` structs and are fully configurable and support Serialization and Deserialization via any Serialization format that you can support.
 
 For more information on how to create your first theme please see the [egui-stylist addon's readme](./egui_stylist_addon/README.md).
 

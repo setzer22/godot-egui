@@ -69,7 +69,7 @@ impl GodotEguiExample {
             .and_then(|godot_egui| unsafe { godot_egui.assume_safe() }.cast::<Control>())
             .and_then(|godot_egui| godot_egui.cast_instance::<GodotEgui>())
             .expect("Expected a `GodotEgui` child with the GodotEgui nativescript class.");
-        gui.map_mut(|gui, o|{
+        gui.map_mut(|gui, _|{
             gui.register_godot_texture(self.icon_1.to_owned());
             gui.register_godot_texture(self.icon_2.to_owned());
         }).expect("this should have worked");

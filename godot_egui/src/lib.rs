@@ -4,9 +4,13 @@ use std::rc::Rc;
 
 use egui::{Event, FullOutput};
 use gdnative::api::{
-    File, GlobalConstants, ImageTexture, InputEventMouseButton, InputEventMouseMotion, ShaderMaterial,
+    GlobalConstants, ImageTexture, InputEventMouseButton, InputEventMouseMotion, ShaderMaterial,
     VisualServer,
 };
+
+#[cfg(feature="theme_support")]
+use gdnative::api::File;
+
 use gdnative::export::{
     Export,
     hint::EnumHint
@@ -36,6 +40,7 @@ pub fn color2egui(color: Color) -> egui::Color32 {
 }
 
 /// Converts an u64, stored in an `egui::Texture::User` back into a Godot `Rid`.
+#[allow(dead_code)]
 fn u64_to_rid(x: u64) -> Rid {
     // Safety: Godot Rids should always fit in an u64, so it's safe to transmute
     unsafe { Rid::from_sys(std::mem::transmute::<u64, gdnative::sys::godot_rid>(x)) }
@@ -117,6 +122,7 @@ pub struct GodotEgui {
     /// Pixels per point controls the render scale of the objects in egui.
     pixels_per_point: f64,
     /// The theme resource that this GodotEgui control will use.
+    #[cfg(feature = "theme_support")]
     theme_path: String,
 }
 
@@ -124,6 +130,7 @@ pub struct GodotEgui {
 impl GodotEgui {
     fn register_properties(builder: &ClassBuilder<GodotEgui>) {
         use gdnative::export::hint::{StringHint, FloatHint, RangeHint};
+        #[cfg(feature = "theme_support")]
         builder.property::<String>("EguiTheme")
             .with_getter(move |egui: &GodotEgui, _| egui.theme_path.clone())
             .with_setter(move |egui: &mut GodotEgui, _, new_val| egui.theme_path = new_val)
@@ -153,6 +160,7 @@ impl GodotEgui {
             scroll_speed: 20.0,
             disable_texture_filtering: false,
             pixels_per_point: 1f64,
+            #[cfg(feature = "theme_support")]
             theme_path: "".to_owned(),
         }
     }
@@ -196,8 +204,10 @@ impl GodotEgui {
                 owner.set_focus_mode(Control::FOCUS_ALL);
             }
         }
+        // This decision is so that we do not have to recompile when testing the shaders.
+        // TODO: Make this a build feature flag.
         self.shader_material = if let Some(material) = owner.material() {
-            godot_error!("godot-egui has a material already set. This is for shader testing purposes and should not be cleared.");
+            godot_error!("godot-egui has a material already set. This is for shader testing purposes. Clear the material if not testing shaders.");
             material.cast::<ShaderMaterial>()
         } else {
             // Create the egui shader to automatically add all the cool stuff.
@@ -217,7 +227,7 @@ impl GodotEgui {
         for (texture_id, delta) in textures_delta.set {
             self.set_texture(texture_id, &delta)
         }
-        
+        #[cfg(feature="theme_support")]
         // We do not check if the themepath is empty. 
         if !self.theme_path.is_empty() {
             let file = File::new();
@@ -400,9 +410,11 @@ impl GodotEgui {
                 egui_image.srgba_pixels(gamma).flat_map(|a| a.to_array()).collect()
             }
         };
-        let pixels = if let Some(pos) = texture_pos {
+
+        // Egui pixel deltas only indicate how big the actual delta is, but when we need to update the data, we need to know the full image size.
+
+        let (pixels, width, height) = if let Some(pos) = texture_pos {
             assert_eq!(delta.image.width() * delta.image.height() * 4, pixel_delta.len() as usize, "delta is not compatible with the pixels");
-            // let insertion_start = pos[0] * pos[1];
             let image = texture.get_data().expect("this must exist");
             
             let mut data = unsafe { image.assume_safe().get_data() };
@@ -414,14 +426,15 @@ impl GodotEgui {
                     data.set(idx as i32, pixel_delta.get(idx as i32));
                 }
             }
-            data
+            (data, texture.get_width(), texture.get_height())
         } else {
-            pixel_delta
+            (pixel_delta, delta.image.width() as _, delta.image.height() as _)
         };
         let image = Image::new();
+        
         image.create_from_data(
-            delta.image.width() as i64,
-            delta.image.height() as i64,
+            width,
+            height,
             false,
             Image::FORMAT_RGBA8,
             pixels

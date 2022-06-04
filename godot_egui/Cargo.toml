@@ -14,5 +14,9 @@ workspace = ".."
 [dependencies]
 gdnative = "0.10"
 egui = "0.18"
-egui-theme = "0.2"
+egui-theme = { version = "0.2", optional = true }
 ron = "0.7"
+
+[features]
+default = []
+theme_support = [ "dep:egui-theme" ]
