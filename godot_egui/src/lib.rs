@@ -39,17 +39,10 @@ pub fn color2egui(color: Color) -> egui::Color32 {
     // egui::Color32::from(egui::Rgba::from_rgba_premultiplied(c.r, c.g, c.b, c.a))
 }
 
-/// Converts an u64, stored in an `egui::Texture::User` back into a Godot `Rid`.
-#[allow(dead_code)]
-fn u64_to_rid(x: u64) -> Rid {
-    // Safety: Godot Rids should always fit in an u64, so it's safe to transmute
-    unsafe { Rid::from_sys(std::mem::transmute::<u64, gdnative::sys::godot_rid>(x)) }
-}
-
 /// Converts a godot `Rid` into an `egui::TextureId`
 pub fn rid_to_egui_texture_id(x: Rid) -> egui::TextureId {
-    // Safety: See `u64_to_rid`
-    unsafe { egui::TextureId::User(std::mem::transmute::<gdnative::sys::godot_rid, u64>(*x.sys())) }
+    // Safety: see `Rid::to_u64`
+    unsafe { egui::TextureId::User(std::mem::transmute::<gdnative::sys::godot_rid, usize>(*x.sys()) as u64) }
 }
 #[derive(ToVariant)]
 enum GodotEguiInputMode {
