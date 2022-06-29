@@ -122,6 +122,9 @@ pub struct GodotEgui {
     disable_texture_filtering: bool,
     /// Pixels per point controls the render scale of the objects in egui.
     pixels_per_point: f64,
+    /// The maximum side length egui should try to allocate for the font texture.
+    #[property(default=2048)]
+    max_texture_side: u32,
     /// The theme resource that this GodotEgui control will use.
     #[cfg(feature = "theme_support")]
     theme_path: String,
@@ -161,6 +164,7 @@ impl GodotEgui {
             scroll_speed: 20.0,
             disable_texture_filtering: false,
             pixels_per_point: 1f64,
+            max_texture_side: 2048,
             #[cfg(feature = "theme_support")]
             theme_path: "".to_owned(),
         }
@@ -222,7 +226,7 @@ impl GodotEgui {
         };
 
         // Run a single dummy frame to ensure the fonts are created, otherwise egui panics
-        self.egui_ctx.begin_frame(egui::RawInput::default());
+        self.egui_ctx.begin_frame(egui::RawInput {max_texture_side: Some(self.max_texture_side as _), ..Default::default()});
         self.egui_ctx.set_pixels_per_point(self.pixels_per_point as f32);
         let FullOutput { textures_delta, .. } = self.egui_ctx.end_frame();
         for (texture_id, delta) in textures_delta.set {
@@ -607,6 +611,7 @@ impl GodotEgui {
 
         // Collect input
         let mut raw_input = self.raw_input.take();
+        raw_input.max_texture_side = Some(self.max_texture_side as _);
         // Ensure that the egui context fills the entire space of the node and is adjusted accordinglly.
         let size = owner.get_rect().size;
         let points_per_pixel = (1.0 / self.pixels_per_point) as f32;
