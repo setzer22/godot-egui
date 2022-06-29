@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use egui::{Event, FullOutput};
+use egui::epaint::ImageDelta;
 use gdnative::api::{
     GlobalConstants, ImageTexture, InputEventMouseButton, InputEventMouseMotion, ShaderMaterial,
     VisualServer,
@@ -359,7 +360,7 @@ impl GodotEgui {
             }
         }
     }
-    
+
     pub fn register_godot_texture(&mut self, texture: Ref<Texture>) {
         let rid = unsafe { texture.assume_safe().get_rid() };
         self.textures.insert(rid_to_egui_texture_id(rid), texture);
@@ -368,35 +369,45 @@ impl GodotEgui {
     fn set_texture(&mut self, texture_id: egui::TextureId, delta: &egui::epaint::ImageDelta) {
         let texture_flags = if self.disable_texture_filtering { 0 } else { Texture::FLAG_FILTER | Texture::FLAG_MIPMAPS };
 
-        let texture = &*self.textures
-            .entry(texture_id)
-            .or_insert_with(|| {
-                assert!(delta.pos.is_none(), "when creating a new texture, the delta must be the full texture");
-                let image = Image::new();
-                image.create(
-                    delta.image.width() as i64,
-                    delta.image.height() as i64,
-                    false,
-                    Image::FORMAT_RGBA8,
-                );
-                let texture = ImageTexture::new();
-                texture.create_from_image(
-                    image,
-                    texture_flags
-                );
-                texture.upcast::<Texture>().into_shared()
+        let texture = &*self.textures.entry(texture_id).or_insert_with(|| {
+            assert!(delta.pos.is_none(), "when creating a new texture, the delta must be the full texture");
+            let texture = ImageTexture::new();
+            texture.upcast::<Texture>().into_shared()
         });
         let texture = unsafe { texture.assume_safe() };
-        
-        let texture_pos = &delta.pos;
-        let pixel_delta: ByteArray = match &delta.image {
+        let texture = texture
+                .cast::<ImageTexture>()
+                .expect("`ImageTexture` is subclass of `Texture`");
+
+        let delta_image = Self::image_from_delta(&delta);
+
+        if let Some(pos) = &delta.pos {
+            // partial update, blit the delta onto the texture at the correct position
+            let texture_image = texture.get_data().expect("this must exist");
+            let texture_image = unsafe { texture_image.assume_safe() };
+             // use the entire delta image
+            let blit_rect = Rect2 {
+                position: Vector2::ZERO,
+                size: delta_image.get_size(),
+            };
+            texture_image.blit_rect(delta_image, blit_rect, Vector2::new(pos[0] as _, pos[1] as _));
+            texture.set_data(texture_image);
+        } else {
+             // full update means size changed, so we need to recreate the texture using the new image
+            texture.create_from_image(delta_image, texture_flags);
+        };
+    }
+
+    /// Create a Godot `Image` from an egui `ImageDelta`
+    fn image_from_delta(delta: &ImageDelta) -> Ref<Image, Unique> {
+        let pixels: ByteArray = match &delta.image {
             egui::ImageData::Color(egui_image) => {
                 assert_eq!(
                     egui_image.width() * egui_image.height(),
                     egui_image.pixels.len(),
                     "Mismatch between texture size and texel count"
                 );
-                // Get the last image texture reference
+
                 egui_image.pixels.iter().flat_map(|color| color.to_array()).collect()
             },
             egui::ImageData::Font(egui_image) => {
@@ -405,41 +416,21 @@ impl GodotEgui {
                     egui_image.pixels.len(),
                     "Mismatch between texture size and texel count"
                 );
-                // I don't really know what this is for but it was 
-                let gamma = 1.0/2.2;
+                // I don't really know what this is for but it was
+                let gamma = 1.0 / 2.2;
                 egui_image.srgba_pixels(gamma).flat_map(|a| a.to_array()).collect()
             }
         };
 
-        // Egui pixel deltas only indicate how big the actual delta is, but when we need to update the data, we need to know the full image size.
-
-        let (pixels, width, height) = if let Some(pos) = texture_pos {
-            assert_eq!(delta.image.width() * delta.image.height() * 4, pixel_delta.len() as usize, "delta is not compatible with the pixels");
-            let image = texture.get_data().expect("this must exist");
-            
-            let mut data = unsafe { image.assume_safe().get_data() };
-            // width is multiplied by 4 as a magic number due as these are bytes.
-
-            for x in pos[0]..delta.image.width() * 4 {
-                for y in pos[1]..delta.image.height() {
-                    let idx = x * y;
-                    data.set(idx as i32, pixel_delta.get(idx as i32));
-                }
-            }
-            (data, texture.get_width(), texture.get_height())
-        } else {
-            (pixel_delta, delta.image.width() as _, delta.image.height() as _)
-        };
-        let image = Image::new();
-        
-        image.create_from_data(
-            width,
-            height,
+        let delta_image = Image::new();
+        delta_image.create_from_data(
+            delta.image.width() as _,
+            delta.image.height() as _,
             false,
             Image::FORMAT_RGBA8,
-            pixels
+            pixels,
         );
-        texture.cast::<ImageTexture>().expect("`ImageTexture` is subclass of `Texture`").set_data(image);
+        delta_image
     }
 
     /// Paints a list of `egui::ClippedMesh` using the `VisualServer`
