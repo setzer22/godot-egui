@@ -1,6 +1,6 @@
 use egui::{Context, Window};
+use gdnative::derive::methods;
 use gdnative::prelude::*;
-use gdnative::derive::{methods};
 use godot_egui::GodotEgui;
 
 #[derive(NativeClass)]
@@ -38,9 +38,7 @@ impl GodotEguiColorTest {
     }
 
     fn draw(&mut self, ctx: &mut Context) {
-        Window::new("Color Test")
-            .vscroll(true)
-            .show(ctx, |ui| {
+        Window::new("Color Test").vscroll(true).show(ctx, |ui| {
             self.egui_test.ui(ui);
         });
         Window::new("Settings").vscroll(true).show(ctx, |ui| {

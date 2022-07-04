@@ -1,6 +1,6 @@
 use egui::ComboBox;
 use gdnative::prelude::*;
-use godot_egui::{GodotEgui, ext::InputMapExt};
+use godot_egui::{ext::InputMapExt, GodotEgui};
 mod window;
 use window::GodotEguiWindowExample;
 
@@ -69,10 +69,11 @@ impl GodotEguiExample {
             .and_then(|godot_egui| unsafe { godot_egui.assume_safe() }.cast::<Control>())
             .and_then(|godot_egui| godot_egui.cast_instance::<GodotEgui>())
             .expect("Expected a `GodotEgui` child with the GodotEgui nativescript class.");
-        gui.map_mut(|gui, _|{
+        gui.map_mut(|gui, _| {
             gui.register_godot_texture(self.icon_1.to_owned());
             gui.register_godot_texture(self.icon_2.to_owned());
-        }).expect("this should have worked");
+        })
+        .expect("this should have worked");
         self.gui = Some(gui.claim());
     }
 
@@ -156,7 +157,7 @@ impl GodotEguiExample {
 
                         ui.heading("You can even plot graphs");
                         ui.add_space(5.0);
-                        
+
                         egui::plot::Plot::new("plot_example")
                             .width(400.0)
                             .view_aspect(4.0 / 3.0)
@@ -221,7 +222,9 @@ impl GodotEguiExample {
                         });
                         ui.label("You can also edit text like below!");
                         ui.text_edit_multiline(&mut self.text_edit_text);
-                        ui.label("And (via extension traits) capture Godot's input events (press an assigned key)");
+                        ui.label(
+                            "And (via extension traits) capture Godot's input events (press an assigned key)",
+                        );
                         let input_map = gdnative::api::InputMap::godot_singleton();
                         for action in input_map.get_actions().iter() {
                             if let Ok(action) = action.try_to::<String>() {
@@ -236,9 +239,9 @@ impl GodotEguiExample {
                 });
                 // TODO: How fonts are stored has completely changed so this will need to be redone if it is desired in the sample project.
                 if self.show_font_settings {
-                    egui::Window::new("Style Settings").open(&mut self.show_font_settings).show(ctx, |ui| {
-                        ctx.style_ui(ui)
-                    });
+                    egui::Window::new("Style Settings")
+                        .open(&mut self.show_font_settings)
+                        .show(ctx, |ui| ctx.style_ui(ui));
                 }
             });
         })

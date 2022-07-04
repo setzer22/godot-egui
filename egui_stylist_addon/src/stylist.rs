@@ -92,7 +92,6 @@ impl GodotEguiStylist {
         // Do the saving or loading
         let fd = unsafe { self.file_dialog.expect("file dialog should be initialized").assume_safe() };
         if fd.mode().0 == FileDialog::MODE_OPEN_FILE {
-            // TODO: Load the file
             self.style.import_theme(load_theme(path));
         } else if fd.mode().0 == FileDialog::MODE_SAVE_FILE {
             save_theme(path, self.style.export_theme());
@@ -100,8 +99,9 @@ impl GodotEguiStylist {
             godot_error!("file_dialog mode should only be MODE_SAVE_FILE or MODE_OPEN_FILE")
         }
         unsafe { self.godot_egui.as_ref().expect("should be initialized").assume_safe() }
-            .map_mut(|_egui, o| {
+            .map_mut(|egui, o| {
                 godot_print!("reenable input on `GodotEgui`");
+                egui.egui_ctx.request_repaint();
                 o.set_process_input(true);
             })
             .expect("this should work");

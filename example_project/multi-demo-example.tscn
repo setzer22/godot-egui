@@ -9,6 +9,7 @@
 margin_right = 1024.0
 margin_bottom = 600.0
 mouse_filter = 1
+handle_gui_input = true
 
 [node name="GodotEguiWindowExample" parent="GodotEguiExample" instance=ExtResource( 2 )]
 margin_right = 1024.0

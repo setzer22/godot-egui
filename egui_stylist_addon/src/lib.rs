@@ -1,4 +1,3 @@
-use gdnative::prelude::*;
 use gdnative::init::*;
 
 mod stylist;

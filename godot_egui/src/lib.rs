@@ -2,20 +2,16 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use egui::{Event, FullOutput};
 use egui::epaint::ImageDelta;
+use egui::{Event, FullOutput};
 use gdnative::api::{
-    GlobalConstants, ImageTexture, InputEventMouseButton, InputEventMouseMotion, ShaderMaterial,
-    VisualServer,
+    GlobalConstants, ImageTexture, InputEventMouseButton, InputEventMouseMotion, ShaderMaterial, VisualServer,
 };
 
-#[cfg(feature="theme_support")]
+#[cfg(feature = "theme_support")]
 use gdnative::api::File;
 
-use gdnative::export::{
-    Export,
-    hint::EnumHint
-};
+use gdnative::export::{hint::EnumHint, Export};
 use gdnative::prelude::*;
 
 /// Contains conversion tables between Godot and egui input constants (keys, mouse buttons)
@@ -58,10 +54,9 @@ impl FromVariant for GodotEguiInputMode {
             0 => Ok(GodotEguiInputMode::None),
             1 => Ok(GodotEguiInputMode::Input),
             2 => Ok(GodotEguiInputMode::GuiInput),
-            _ => Err(FromVariantError::UnknownEnumVariant{
-                variant: "i64".to_owned(),
-                expected: &["0", "1", "2"],
-            }),
+            _ => {
+                Err(FromVariantError::UnknownEnumVariant { variant: "i64".to_owned(), expected: &["0", "1", "2"] })
+            }
         }
     }
 }
@@ -70,14 +65,9 @@ impl Export for GodotEguiInputMode {
     type Hint = gdnative::export::hint::IntHint<u32>;
 
     fn export_info(_hint: Option<Self::Hint>) -> ExportInfo {
-        Self::Hint::Enum(EnumHint::new(vec![
-            "None".to_owned(),
-            "Input".to_owned(),
-            "GuiInput".to_owned(),
-        ]))
-        .export_info()
+        Self::Hint::Enum(EnumHint::new(vec!["None".to_owned(), "Input".to_owned(), "GuiInput".to_owned()]))
+            .export_info()
     }
-
 }
 
 /// Stores a canvas item, used by the visual server
@@ -116,8 +106,8 @@ pub struct GodotEgui {
     /// Pixels per point controls the render scale of the objects in egui.
     pixels_per_point: f64,
     /// The maximum side length egui should try to allocate for the font texture.
-    #[property(default=2048)]
-    max_texture_side: u32,
+    #[property(default = 2048)]
+    max_texture_side_length: u32,
     /// The theme resource that this GodotEgui control will use.
     #[cfg(feature = "theme_support")]
     theme_path: String,
@@ -126,9 +116,10 @@ pub struct GodotEgui {
 #[gdnative::derive::methods]
 impl GodotEgui {
     fn register_properties(builder: &ClassBuilder<GodotEgui>) {
-        use gdnative::export::hint::{StringHint, FloatHint, RangeHint};
+        use gdnative::export::hint::{FloatHint, RangeHint, StringHint};
         #[cfg(feature = "theme_support")]
-        builder.property::<String>("EguiTheme")
+        builder
+            .property::<String>("EguiTheme")
             .with_getter(move |egui: &GodotEgui, _| egui.theme_path.clone())
             .with_setter(move |egui: &mut GodotEgui, _, new_val| egui.theme_path = new_val)
             .with_default("".to_owned())
@@ -157,7 +148,7 @@ impl GodotEgui {
             scroll_speed: 20.0,
             disable_texture_filtering: false,
             pixels_per_point: 1f64,
-            max_texture_side: 2048,
+            max_texture_side_length: 2048,
             #[cfg(feature = "theme_support")]
             theme_path: "".to_owned(),
         }
@@ -174,7 +165,7 @@ impl GodotEgui {
         }
     }
     /// Updates egui from the `_input` callback
-    
+
     /// Run when this node is added to the scene tree. Runs some initialization logic, like registering any
     /// custom fonts defined as properties
     #[export]
@@ -185,14 +176,14 @@ impl GodotEgui {
                 owner.set_mouse_filter(Control::MOUSE_FILTER_IGNORE);
                 owner.set_focus_mode(Control::FOCUS_NONE);
                 owner.set_process_input(false);
-            },
+            }
             GodotEguiInputMode::Input => {
                 godot_print!("GodotEgui is accepting input");
                 owner.set_process_input(true);
                 // Ignore GUI input
                 owner.set_mouse_filter(Control::MOUSE_FILTER_IGNORE);
                 owner.set_focus_mode(Control::FOCUS_NONE);
-            },
+            }
             GodotEguiInputMode::GuiInput => {
                 godot_print!("GodotEgui is accepting GUI input");
                 // Ignore input
@@ -219,14 +210,17 @@ impl GodotEgui {
         };
 
         // Run a single dummy frame to ensure the fonts are created, otherwise egui panics
-        self.egui_ctx.begin_frame(egui::RawInput {max_texture_side: Some(self.max_texture_side as _), ..Default::default()});
+        self.egui_ctx.begin_frame(egui::RawInput {
+            max_texture_side: Some(self.max_texture_side_length as _),
+            ..Default::default()
+        });
         self.egui_ctx.set_pixels_per_point(self.pixels_per_point as f32);
         let FullOutput { textures_delta, .. } = self.egui_ctx.end_frame();
         for (texture_id, delta) in textures_delta.set {
             self.set_texture(texture_id, &delta)
         }
-        #[cfg(feature="theme_support")]
-        // We do not check if the themepath is empty. 
+        #[cfg(feature = "theme_support")]
+        // We do not check if the themepath is empty.
         if !self.theme_path.is_empty() {
             let file = File::new();
             if file.file_exists(self.theme_path.as_str()) {
@@ -296,10 +290,7 @@ impl GodotEgui {
                 // NOTE: The egui is painted inside a control node, so its global rect offset must be taken into account.
                 let offset_position = mouse_pos - owner.get_global_rect().position;
                 // This is used to get the correct rotation when the root node is rotated.
-                owner
-                    .get_global_transform()
-                    .affine_inverse()
-                    .basis_xform(offset_position)
+                owner.get_global_transform().affine_inverse().basis_xform(offset_position)
             };
             // It is necessary to translate the mouse position which refers to physical pixel position to egui's logical points
             // This is found using the inverse of current `pixels_per_point` setting.
@@ -364,7 +355,8 @@ impl GodotEgui {
     }
 
     fn set_texture(&mut self, texture_id: egui::TextureId, delta: &egui::epaint::ImageDelta) {
-        let texture_flags = if self.disable_texture_filtering { 0 } else { Texture::FLAG_FILTER | Texture::FLAG_MIPMAPS };
+        let texture_flags =
+            if self.disable_texture_filtering { 0 } else { Texture::FLAG_FILTER | Texture::FLAG_MIPMAPS };
 
         let texture = &*self.textures.entry(texture_id).or_insert_with(|| {
             assert!(delta.pos.is_none(), "when creating a new texture, the delta must be the full texture");
@@ -372,25 +364,20 @@ impl GodotEgui {
             texture.upcast::<Texture>().into_shared()
         });
         let texture = unsafe { texture.assume_safe() };
-        let texture = texture
-                .cast::<ImageTexture>()
-                .expect("`ImageTexture` is subclass of `Texture`");
+        let texture = texture.cast::<ImageTexture>().expect("`ImageTexture` is subclass of `Texture`");
 
-        let delta_image = Self::image_from_delta(&delta);
+        let delta_image = Self::image_from_delta(delta);
 
         if let Some(pos) = &delta.pos {
             // partial update, blit the delta onto the texture at the correct position
             let texture_image = texture.get_data().expect("this must exist");
             let texture_image = unsafe { texture_image.assume_safe() };
-             // use the entire delta image
-            let blit_rect = Rect2 {
-                position: Vector2::ZERO,
-                size: delta_image.get_size(),
-            };
+            // use the entire delta image
+            let blit_rect = Rect2 { position: Vector2::ZERO, size: delta_image.get_size() };
             texture_image.blit_rect(delta_image, blit_rect, Vector2::new(pos[0] as _, pos[1] as _));
             texture.set_data(texture_image);
         } else {
-             // full update means size changed, so we need to recreate the texture using the new image
+            // full update means size changed, so we need to recreate the texture using the new image
             texture.create_from_image(delta_image, texture_flags);
         };
     }
@@ -406,7 +393,7 @@ impl GodotEgui {
                 );
 
                 egui_image.pixels.iter().flat_map(|color| color.to_array()).collect()
-            },
+            }
             egui::ImageData::Font(egui_image) => {
                 assert_eq!(
                     egui_image.width() * egui_image.height(),
@@ -432,8 +419,7 @@ impl GodotEgui {
 
     /// Paints a list of `egui::ClippedMesh` using the `VisualServer`
     fn paint_shapes(
-        &mut self, owner: &Control,
-        clipped_meshes: Vec<egui::ClippedPrimitive>,
+        &mut self, owner: &Control, clipped_meshes: Vec<egui::ClippedPrimitive>,
         egui_texture_deltas: egui::TexturesDelta,
     ) {
         let pixels_per_point = self.egui_ctx.pixels_per_point();
@@ -494,15 +480,13 @@ impl GodotEgui {
                 continue;
             }
             assert!(mesh.is_valid(), "mesh is invalid");
-            
+
             let texture_rid = self.textures.get(&mesh.texture_id);
             if texture_rid.is_none() {
                 godot_print!("{:?} does not exist", &mesh.texture_id);
                 continue;
             }
-            let texture_rid = unsafe {
-                texture_rid.unwrap().assume_safe().get_rid()
-            };
+            let texture_rid = unsafe { texture_rid.unwrap().assume_safe().get_rid() };
 
             for mut mesh in mesh.split_to_u16() {
                 // First we need to get the indicies and map them to the i32 which godot understands.
@@ -527,7 +511,7 @@ impl GodotEgui {
                 unsafe {
                     vs.canvas_item_clear(vs_mesh.canvas_item);
                     vs.canvas_item_set_material(vs_mesh.canvas_item, material_rid);
-                    
+
                     vs.canvas_item_add_triangle_array(
                         vs_mesh.canvas_item,
                         indices,
@@ -546,24 +530,24 @@ impl GodotEgui {
                     vs.canvas_item_set_transform(
                         vs_mesh.canvas_item,
                         Transform2D::from_basis_origin(
-                            Vector2::new(
-                                pixels_per_point, 0.0
-                            ),
-                            Vector2::new(
-                                0.0, pixels_per_point
-                            ),
-                            Vector2::new(
-                                0.0, 0.0
-                            )
+                            Vector2::new(pixels_per_point, 0.0),
+                            Vector2::new(0.0, pixels_per_point),
+                            Vector2::new(0.0, 0.0),
                         ),
                     );
                     vs.canvas_item_set_clip(vs_mesh.canvas_item, true);
-                    vs.canvas_item_set_custom_rect(vs_mesh.canvas_item, true, Rect2 {
-                        position: Vector2::new(clip_rect.min.x, clip_rect.min.y),
-                        size: Vector2::new(clip_rect.max.x - clip_rect.min.x, clip_rect.max.y - clip_rect.min.y),
-                    });
+                    vs.canvas_item_set_custom_rect(
+                        vs_mesh.canvas_item,
+                        true,
+                        Rect2 {
+                            position: Vector2::new(clip_rect.min.x, clip_rect.min.y),
+                            size: Vector2::new(
+                                clip_rect.max.x - clip_rect.min.x,
+                                clip_rect.max.y - clip_rect.min.y,
+                            ),
+                        },
+                    );
                 }
-            
             }
             // Cleanup textures as required
             for &id in &egui_texture_deltas.free {
@@ -580,7 +564,9 @@ impl GodotEgui {
     fn clear(&mut self, _owner: TRef<Control>) {
         let vs = unsafe { VisualServer::godot_singleton() };
         for mesh in self.meshes.iter() {
-            unsafe { vs.free_rid(mesh.canvas_item); }
+            unsafe {
+                vs.free_rid(mesh.canvas_item);
+            }
         }
         self.meshes.clear();
     }
@@ -604,15 +590,17 @@ impl GodotEgui {
 
         // Collect input
         let mut raw_input = self.raw_input.take();
-        raw_input.max_texture_side = Some(self.max_texture_side as _);
+        raw_input.max_texture_side = Some(self.max_texture_side_length as _);
         // Ensure that the egui context fills the entire space of the node and is adjusted accordinglly.
         let size = owner.get_rect().size;
         let points_per_pixel = (1.0 / self.pixels_per_point) as f32;
-        raw_input.screen_rect =
-            Some(egui::Rect::from_min_size(Default::default(), egui::Vec2::new(size.x * points_per_pixel, size.y * points_per_pixel)));
+        raw_input.screen_rect = Some(egui::Rect::from_min_size(
+            Default::default(),
+            egui::Vec2::new(size.x * points_per_pixel, size.y * points_per_pixel),
+        ));
 
         self.egui_ctx.begin_frame(raw_input);
-        
+
         // This ensures that while not using `reactive_update` that the UI is redrawn each frame regardless of whether the output would
         // normally request a repaint.
         if !self.reactive_update {
@@ -622,12 +610,8 @@ impl GodotEgui {
         draw_fn(&mut self.egui_ctx);
 
         // Render GUI
-        let egui::FullOutput {
-            platform_output,
-            needs_repaint,
-            shapes,
-            textures_delta,
-        } = self.egui_ctx.end_frame();
+        let egui::FullOutput { platform_output, needs_repaint, shapes, textures_delta } =
+            self.egui_ctx.end_frame();
 
         // Each frame, we set the mouse_was_captured flag so that we know whether egui should be
         // consuming mouse events or not. This may introduce a one-frame lag in capturing input, but in practice it
@@ -679,10 +663,14 @@ impl Drop for GodotEgui {
 /// ## Note
 /// This method should not be used in any library where `register_classes_as_tool` is run. Doing so may result
 /// in `gdnative` errors.
-pub fn register_classes(handle: InitHandle) { handle.add_class::<GodotEgui>(); }
+pub fn register_classes(handle: InitHandle) {
+    handle.add_class::<GodotEgui>();
+}
 
 /// Helper method that registers all GodotEgui `NativeClass` objects as tool scripts. This should **only** be
 /// used when GodotEgui is to be run inside the Godot editor. ## Note
 /// This method should not be used in any library where `register_classes` is run. Doing so may result in
 /// `gdnative` errors.
-pub fn register_classes_as_tool(handle: InitHandle) { handle.add_tool_class::<GodotEgui>(); }
+pub fn register_classes_as_tool(handle: InitHandle) {
+    handle.add_tool_class::<GodotEgui>();
+}
