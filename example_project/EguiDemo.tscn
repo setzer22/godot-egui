@@ -16,3 +16,4 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 script = ExtResource( 1 )
 input_mode = 2
+disable_texture_filtering = true

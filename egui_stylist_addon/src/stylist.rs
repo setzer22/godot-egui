@@ -68,7 +68,7 @@ impl GodotEguiStylist {
     fn _process(&mut self, owner: TRef<Control>, _: f32) {
         let egui = unsafe { self.godot_egui.as_ref().expect("this must be initialized").assume_safe() };
         egui.map_mut(|gui, gui_owner| {
-            gui.update_ctx(gui_owner, |ctx| {
+            gui.update_ctx(gui_owner.as_ref(), |ctx| {
                 egui::TopBottomPanel::top("top_panel").show(ctx, |ui| self.menu_bar(owner, gui_owner, ui));
                 egui::CentralPanel::default().show(ctx, |ui| self.style.ui(ui));
             });
@@ -92,7 +92,6 @@ impl GodotEguiStylist {
         // Do the saving or loading
         let fd = unsafe { self.file_dialog.expect("file dialog should be initialized").assume_safe() };
         if fd.mode().0 == FileDialog::MODE_OPEN_FILE {
-            // TODO: Load the file
             self.style.import_theme(load_theme(path));
         } else if fd.mode().0 == FileDialog::MODE_SAVE_FILE {
             save_theme(path, self.style.export_theme());
@@ -100,8 +99,9 @@ impl GodotEguiStylist {
             godot_error!("file_dialog mode should only be MODE_SAVE_FILE or MODE_OPEN_FILE")
         }
         unsafe { self.godot_egui.as_ref().expect("should be initialized").assume_safe() }
-            .map_mut(|_egui, o| {
+            .map_mut(|egui, o| {
                 godot_print!("reenable input on `GodotEgui`");
+                egui.egui_ctx.request_repaint();
                 o.set_process_input(true);
             })
             .expect("this should work");
@@ -112,7 +112,7 @@ impl GodotEguiStylist {
     /// This creates the main menu bar that will be used by godot.
     fn menu_bar(&mut self, _: TRef<Control>, gui_owner: TRef<Control>, ui: &mut egui::Ui) {
         egui::menu::bar(ui, |ui| {
-            egui::menu::menu(ui, "File", |ui| {
+            egui::menu::menu_button(ui, "File", |ui| {
                 // TODO: Make a generic FileDialog Modal
                 if ui.button("Load").clicked() {
                     let fd = unsafe { self.file_dialog.expect("file dialog should be initialized").assume_safe() };
@@ -139,7 +139,7 @@ impl GodotEguiStylist {
                     gui_owner.set_process_input(false);
                 }
             });
-            egui::menu::menu(ui, "Options", |ui| {
+            egui::menu::menu_button(ui, "Options", |ui| {
                 if ui.button("Set current theme as app theme").clicked() {
                     let ctx = ui.ctx();
                     let theme = self.style.export_theme();

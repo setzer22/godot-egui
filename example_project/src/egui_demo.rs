@@ -8,7 +8,7 @@ pub struct GodotEguiDemoLib {
     gui: Option<Instance<GodotEgui, Shared>>,
 }
 
-#[gdnative::methods]
+#[methods]
 impl GodotEguiDemoLib {
     fn new(_owner: &Control) -> Self {
         Self { egui_demo: egui_demo_lib::DemoWindows::default(), gui: None }
@@ -30,7 +30,7 @@ impl GodotEguiDemoLib {
     fn _process(&mut self, _owner: &Control, _delta: f64) {
         let gui = unsafe { self.gui.as_ref().expect("GUI initialized").assume_safe() };
         gui.map_mut(|gui, instance| {
-            gui.update_ctx(instance, |ctx| self.egui_demo.ui(ctx));
+            gui.update_ctx(instance.as_ref(), |ctx| self.egui_demo.ui(ctx));
         })
         .expect("egui error");
     }

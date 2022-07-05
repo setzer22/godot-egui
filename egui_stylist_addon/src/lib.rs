@@ -1,4 +1,4 @@
-use gdnative::prelude::*;
+use gdnative::init::*;
 
 mod stylist;
 pub use stylist::GodotEguiStylist;

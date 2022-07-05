@@ -1,11 +1,11 @@
-//! These Extension traits extend `egui::Ui` to have easy access to the Godot Input singleton. 
+//! These Extension traits extend `egui::Ui` to have easy access to the Godot Input singleton.
 //! This module helps bridge the gap between `egui`'s input events and allows you to leverage Godot's Input singleton
-//! directly in `egui` 
-//! 
+//! directly in `egui`
+//!
 //! To use these extension methods, import the needed extensions into your `GodotEgui` project where you need the traits.
-use gdnative::prelude::*;
+use gdnative::api::input::{CursorShape, MouseMode};
 use gdnative::api::Resource;
-use gdnative::api::input::{MouseMode, CursorShape};
+use gdnative::prelude::*;
 
 impl InputMapExt for egui::Ui {}
 impl MouseKeyboardInputExt for egui::Ui {}
@@ -57,7 +57,7 @@ pub trait JoypadInputExt {
         Input::godot_singleton().get_joy_axis(device, axis)
     }
     #[inline]
-    fn get_joy_axis_index_from_string(&self,axis: impl Into<GodotString>) -> i64 {
+    fn get_joy_axis_index_from_string(&self, axis: impl Into<GodotString>) -> i64 {
         Input::godot_singleton().get_joy_axis_index_from_string(axis)
     }
     #[inline]
@@ -89,7 +89,9 @@ pub trait JoypadInputExt {
         Input::godot_singleton().get_joy_vibration_strength(device)
     }
     #[inline]
-    fn joy_connection_changed(&self,device: i64, connected: bool, name: impl Into<GodotString>, guid: impl Into<GodotString>) {
+    fn joy_connection_changed(
+        &self, device: i64, connected: bool, name: impl Into<GodotString>, guid: impl Into<GodotString>,
+    ) {
         Input::godot_singleton().joy_connection_changed(device, connected, name, guid)
     }
     #[inline]
@@ -97,7 +99,7 @@ pub trait JoypadInputExt {
         Input::godot_singleton().remove_joy_mapping(guid)
     }
     #[inline]
-    fn start_joy_vibration(&self,device: i64, weak_magnitude: f64, strong_magnitude: f64, duration: f64) {
+    fn start_joy_vibration(&self, device: i64, weak_magnitude: f64, strong_magnitude: f64, duration: f64) {
         Input::godot_singleton().start_joy_vibration(device, weak_magnitude, strong_magnitude, duration)
     }
     #[inline]
@@ -142,7 +144,6 @@ pub trait MouseKeyboardInputExt {
     fn warp_mouse_position(&self, to: Vector2) {
         Input::godot_singleton().warp_mouse_position(to)
     }
-    
 }
 
 /// An extension that can be used to add access to Godot's `Input` singleton's methods directly from any other object.
@@ -153,20 +154,20 @@ pub trait InputMapExt {
         Input::godot_singleton().get_current_cursor_shape()
     }
     #[inline]
-    fn action_strength(&self, action: impl Into<GodotString>) -> f64 {
-        Input::godot_singleton().get_action_strength(action)
+    fn action_strength(&self, action: impl Into<GodotString>, exact: bool) -> f64 {
+        Input::godot_singleton().get_action_strength(action, exact)
     }
     #[inline]
-    fn is_action_pressed(&self, action: impl Into<GodotString>) -> bool {
-        Input::godot_singleton().is_action_pressed(action)
+    fn is_action_pressed(&self, action: impl Into<GodotString>, exact: bool) -> bool {
+        Input::godot_singleton().is_action_pressed(action, exact)
     }
     #[inline]
-    fn is_action_just_pressed(&self, action: impl Into<GodotString>) -> bool {
-        Input::godot_singleton().is_action_just_pressed(action)
+    fn is_action_just_pressed(&self, action: impl Into<GodotString>, exact: bool) -> bool {
+        Input::godot_singleton().is_action_just_pressed(action, exact)
     }
     #[inline]
-    fn is_action_just_released(&self, action: impl Into<GodotString>) -> bool {
-        Input::godot_singleton().is_action_just_released(action)
+    fn is_action_just_released(&self, action: impl Into<GodotString>, exact: bool) -> bool {
+        Input::godot_singleton().is_action_just_released(action, exact)
     }
     #[inline]
     fn parse_input_event(&self, event: impl AsArg<InputEvent>) {

@@ -4,15 +4,19 @@ description = "Egui backend for the Godot Engine"
 homepage = "https://github.com/setzer22/godot-egui"
 repository = "https://github.com/setzer22/godot-egui"
 license = "MIT"
-version = "0.1.8"
-authors = ["Setzer22"]
+version = "0.2.0"
+authors = ["Setzer22", "Jacobsky"]
 keywords = ["gamedev", "gui"]
 edition = "2018"
 readme = "../README.md"
 workspace = ".."
 
 [dependencies]
-gdnative = "0.9.3"
-egui = "0.14.2"
-egui-theme = "0.1.0"
-ron = "0.6.4"
+gdnative = "0.10"
+egui = "0.18"
+egui-theme = { version = "0.2", optional = true }
+ron = "0.7"
+
+[features]
+default = []
+theme_support = [ "dep:egui-theme" ]
