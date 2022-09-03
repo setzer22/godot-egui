@@ -12,7 +12,8 @@ readme = "../README.md"
 workspace = ".."
 
 [dependencies]
-gdnative = "0.10"
+gdnative = "0.10.1"
+#gdnative = { git = "https://github.com/godot-rust/godot-rust.git", branch = "master"}
 egui = "0.18"
 egui-theme = { version = "0.2", optional = true }
 ron = "0.7"

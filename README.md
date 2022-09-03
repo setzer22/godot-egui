@@ -66,13 +66,13 @@ In order to handle input, `GodotEgui` exposes the `handle_godot_input` and `mous
 To handle input from `_input` or `_unhandled_input` use the following:
 
 ```rust
-#[export]
+#[method]
 // fn _unhandled_input(&mut self, owner: TRef<Control>, event: Ref<InputEvent>) also works.
-fn _input(&mut self, owner: TRef<Control>, event: Ref<InputEvent>) {
+fn _input(&mut self, #[base] owner: TRef<Control>, event: Ref<InputEvent>) {
     let gui = unsafe { self.gui.as_ref().expect("GUI initialized").assume_safe() };
     gui.map_mut(|gui, instance| {
         gui.handle_godot_input(instance, event, false);
-        if gui.mouse_was_captured(instance) {
+        if gui.mouse_was_captured() {
             // Set the input as handled by the viewport if the gui believes that is has been captured.
             unsafe { owner.get_viewport().expect("Viewport").assume_safe().set_input_as_handled() };
         }
@@ -84,12 +84,12 @@ fn _input(&mut self, owner: TRef<Control>, event: Ref<InputEvent>) {
 To handle input from `_gui_input` use the following:
 
 ```rust
-#[export]
-fn _gui_input(&mut self, owner: TRef<Control>, event: Ref<InputEvent>) {
+#[method]
+fn _gui_input(&mut self, #[base] owner: TRef<Control>, event: Ref<InputEvent>) {
     let gui = unsafe { self.gui.as_ref().expect("GUI initialized").assume_safe() };
     gui.map_mut(|gui, instance| {
         gui.handle_godot_input(instance, event, true);
-        if gui.mouse_was_captured(instance) {
+        if gui.mouse_was_captured() {
             // `_gui_input` uses accept_event() to stop the propagation of events.
             owner.accept_event();
         }

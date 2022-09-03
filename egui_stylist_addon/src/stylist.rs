@@ -18,20 +18,20 @@ impl GodotEguiStylist {
     }
 
     /// Updates egui from the `_gui_input` callback
-    #[export]
-    pub fn _gui_input(&mut self, owner: TRef<Control>, event: Ref<InputEvent>) {
+    #[method]
+    pub fn _gui_input(&mut self, #[base] owner: TRef<Control>, event: Ref<InputEvent>) {
         let gui = unsafe { self.godot_egui.as_ref().expect("GUI initialized").assume_safe() };
         gui.map_mut(|gui, instance| {
             gui.handle_godot_input(instance, event, true);
-            if gui.mouse_was_captured(instance) {
+            if gui.mouse_was_captured() {
                 owner.accept_event();
             }
         })
         .expect("map_mut should succeed");
     }
 
-    #[export]
-    fn _ready(&mut self, owner: TRef<Control>) {
+    #[method]
+    fn _ready(&mut self, #[base] owner: TRef<Control>) {
         let gui = owner
             .get_node("godot_egui")
             .and_then(|godot_egui| unsafe { godot_egui.assume_safe() }.cast::<Control>())
@@ -64,8 +64,8 @@ impl GodotEguiStylist {
         self.godot_egui = Some(gui.claim());
         self.file_dialog = Some(file_dialog.claim());
     }
-    #[export]
-    fn _process(&mut self, owner: TRef<Control>, _: f32) {
+    #[method]
+    fn _process(&mut self, #[base] owner: TRef<Control>, _: f32) {
         let egui = unsafe { self.godot_egui.as_ref().expect("this must be initialized").assume_safe() };
         egui.map_mut(|gui, gui_owner| {
             gui.update_ctx(gui_owner.as_ref(), |ctx| {
@@ -75,8 +75,8 @@ impl GodotEguiStylist {
         })
         .expect("this should work");
     }
-    #[export]
-    fn on_file_dialog_closed(&mut self, _: &Control) {
+    #[method]
+    fn on_file_dialog_closed(&mut self) {
         godot_print!("on_file_dialog_closed");
         // owner.set_process(true);
         unsafe { self.godot_egui.as_ref().expect("should be initialized").assume_safe() }
@@ -86,8 +86,8 @@ impl GodotEguiStylist {
             })
             .expect("this should work");
     }
-    #[export]
-    fn on_file_selected(&mut self, _: TRef<Control>, path: GodotString) {
+    #[method]
+    fn on_file_selected(&mut self, path: GodotString) {
         godot_print!("on_file_selected");
         // Do the saving or loading
         let fd = unsafe { self.file_dialog.expect("file dialog should be initialized").assume_safe() };
