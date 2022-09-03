@@ -55,8 +55,8 @@ impl GodotEguiExample {
         }
     }
 
-    #[export]
-    pub fn _ready(&mut self, owner: TRef<Control>) {
+    #[method]
+    pub fn _ready(&mut self, #[base] owner: TRef<Control>) {
         godot_print!("Initializing godot egui");
         owner.set_process_input(self.handle_input);
         if self.handle_gui_input {
@@ -89,12 +89,12 @@ impl GodotEguiExample {
         .name("wave")
     }
     /// Updates egui from the `_input` callback
-    #[export]
-    pub fn _input(&mut self, owner: TRef<Control>, event: Ref<InputEvent>) {
+    #[method]
+    pub fn _input(&mut self, #[base] owner: TRef<Control>, event: Ref<InputEvent>) {
         let gui = unsafe { self.gui.as_ref().expect("GUI initialized").assume_safe() };
         gui.map_mut(|gui, instance| {
             gui.handle_godot_input(instance, event, false);
-            if gui.mouse_was_captured(instance) {
+            if gui.mouse_was_captured() {
                 // Set the input as handled by the viewport if the gui believes that is has been captured.
                 unsafe { owner.get_viewport().expect("Viewport").assume_safe().set_input_as_handled() };
             }
@@ -103,19 +103,19 @@ impl GodotEguiExample {
     }
 
     /// Updates egui from the `_gui_input` callback
-    #[export]
-    pub fn _gui_input(&mut self, owner: TRef<Control>, event: Ref<InputEvent>) {
+    #[method]
+    pub fn _gui_input(&mut self, #[base] owner: TRef<Control>, event: Ref<InputEvent>) {
         let gui = unsafe { self.gui.as_ref().expect("GUI initialized").assume_safe() };
         gui.map_mut(|gui, instance| {
             gui.handle_godot_input(instance, event, true);
-            if gui.mouse_was_captured(instance) {
+            if gui.mouse_was_captured() {
                 owner.accept_event();
             }
         })
         .expect("map_mut should succeed");
     }
-    #[export]
-    pub fn _process(&mut self, _owner: TRef<Control>, delta: f64) {
+    #[method]
+    pub fn _process(&mut self, delta: f64) {
         let gui = unsafe { self.gui.as_ref().expect("GUI initialized").assume_safe() };
 
         self.elapsed_time += delta;
@@ -127,7 +127,7 @@ impl GodotEguiExample {
         gui.map_mut(|gui, instance| {
             // This resizes the window each frame based on a sine wave
             if self.dynamically_change_pixels_per_point {
-                gui.set_pixels_per_point(instance, (self.elapsed_time.sin() * 0.20) + 0.8);
+                gui.set_pixels_per_point((self.elapsed_time.sin() * 0.20) + 0.8);
             }
 
             // We use the `update` method here to just draw a simple UI on the central panel. If you need more

@@ -16,8 +16,8 @@ impl GodotEguiColorTest {
         Self { egui_test: egui_demo_lib::ColorTest::default(), gui: None }
     }
 
-    #[export]
-    fn _ready(&mut self, owner: TRef<Control>) {
+    #[method]
+    fn _ready(&mut self, #[base] owner: TRef<Control>) {
         godot_print!("Test node ready");
         let gui = owner
             .get_node("GodotEgui")
@@ -28,8 +28,8 @@ impl GodotEguiColorTest {
         self.gui = Some(gui.claim());
     }
 
-    #[export]
-    fn _process(&mut self, _owner: &Control, _delta: f64) {
+    #[method]
+    fn _process(&mut self, _delta: f64) {
         let gui = unsafe { self.gui.as_ref().expect("GUI initialized").assume_safe() };
         gui.map_mut(|gui, instance| {
             gui.update_ctx(instance.as_ref(), |ctx| self.draw(ctx));

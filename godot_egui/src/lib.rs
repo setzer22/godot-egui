@@ -12,7 +12,6 @@ use gdnative::api::{
 use gdnative::api::File;
 
 use gdnative::export::{hint::EnumHint, Export};
-use gdnative::export::hint::StringHint;
 use gdnative::prelude::*;
 
 /// Contains conversion tables between Godot and egui input constants (keys, mouse buttons)
@@ -117,14 +116,17 @@ pub struct GodotEgui {
 #[gdnative::derive::methods]
 impl GodotEgui {
     fn register_properties(builder: &ClassBuilder<GodotEgui>) {
-        use gdnative::export::hint::{FloatHint, RangeHint, StringHint};
+        use gdnative::export::hint::{FloatHint, RangeHint};
         #[cfg(feature = "theme_support")]
         builder
             .property::<String>("EguiTheme")
             .with_getter(move |egui: &GodotEgui, _| egui.theme_path.clone())
             .with_setter(move |egui: &mut GodotEgui, _, new_val| egui.theme_path = new_val)
             .with_default("".to_owned())
-            .with_hint(StringHint::File(EnumHint::new(vec!["*.ron".to_owned(), "*.eguitheme".to_owned()])))
+            .with_hint(gdnative::export::hint::StringHint::File(EnumHint::new(vec![
+                "*.ron".to_owned(),
+                "*.eguitheme".to_owned(),
+            ])))
             .done();
         builder
             .property::<f64>("pixels_per_point")
@@ -156,8 +158,8 @@ impl GodotEgui {
     }
 
     /// Set the pixels_per_point use by `egui` to render the screen. This should be used to scale the `egui` nodes if you are using a non-standard scale for nodes in your game.
-    #[export]
-    pub fn set_pixels_per_point(&mut self, _owner: TRef<Control>, pixels_per_point: f64) {
+    #[method]
+    pub fn set_pixels_per_point(&mut self, pixels_per_point: f64) {
         if pixels_per_point > 0f64 {
             self.pixels_per_point = pixels_per_point;
             self.egui_ctx.set_pixels_per_point(self.pixels_per_point as f32);
@@ -169,8 +171,8 @@ impl GodotEgui {
 
     /// Run when this node is added to the scene tree. Runs some initialization logic, like registering any
     /// custom fonts defined as properties
-    #[export]
-    fn _ready(&mut self, owner: TRef<Control>) {
+    #[method]
+    fn _ready(&mut self, #[base] owner: TRef<Control>) {
         match self.input_mode {
             GodotEguiInputMode::None => {
                 godot_print!("GodotEgui is not accepting input");
@@ -250,25 +252,25 @@ impl GodotEgui {
     }
 
     /// Is used to indicate if the mouse was captured during the previous frame.
-    #[export]
-    pub fn mouse_was_captured(&self, _owner: TRef<Control>) -> bool {
+    #[method]
+    pub fn mouse_was_captured(&self) -> bool {
         self.mouse_was_captured
     }
 
-    #[export]
-    pub fn _input(&mut self, owner: TRef<Control>, event: Ref<InputEvent>) {
+    #[method]
+    pub fn _input(&mut self, #[base] owner: TRef<Control>, event: Ref<InputEvent>) {
         self.handle_godot_input(owner, event, false);
-        if self.mouse_was_captured(owner) {
+        if self.mouse_was_captured() {
             // Set the input as handled by the viewport if the gui believes that is has been captured.
             unsafe { owner.get_viewport().expect("Viewport").assume_safe().set_input_as_handled() };
         }
     }
 
     /// Updates egui from the `_gui_input` callback
-    #[export]
-    pub fn _gui_input(&mut self, owner: TRef<Control>, event: Ref<InputEvent>) {
+    #[method]
+    pub fn _gui_input(&mut self, #[base] owner: TRef<Control>, event: Ref<InputEvent>) {
         self.handle_godot_input(owner, event, true);
-        if self.mouse_was_captured(owner) {
+        if self.mouse_was_captured() {
             owner.accept_event();
         }
     }
@@ -277,8 +279,10 @@ impl GodotEgui {
     /// `event` should be the raw `InputEvent` that is handled by `_input`, `_gui_input` and `_unhandled_input`.
     /// `is_gui_input` should be true only if this event should be processed like it was emitted from the `_gui_input` callback.
     /// # Note: If you are calling this manually, self.input_mode *MUST* be set to GodotEguiInputMode::None
-    #[export]
-    pub fn handle_godot_input(&mut self, owner: TRef<Control>, event: Ref<InputEvent>, is_gui_input: bool) {
+    #[method]
+    pub fn handle_godot_input(
+        &mut self, #[base] owner: TRef<Control>, event: Ref<InputEvent>, is_gui_input: bool,
+    ) {
         let event = unsafe { event.assume_safe() };
         let mut raw_input = self.raw_input.borrow_mut();
         let pixels_per_point = self.egui_ctx.pixels_per_point();
@@ -561,8 +565,8 @@ impl GodotEgui {
     /// # Usage Note
     /// This should only be necessary when you wish to disable an Egui node and do not wish to use the internal Godot visibility or when you wish to free canvas_item resources
     /// for memory intensive GUIs.
-    #[export]
-    fn clear(&mut self, _owner: TRef<Control>) {
+    #[method]
+    fn clear(&mut self) {
         let vs = unsafe { VisualServer::godot_singleton() };
         for mesh in self.meshes.iter() {
             unsafe {
@@ -580,8 +584,8 @@ impl GodotEgui {
     /// asynchronously (such as via signals) and very rarely such as a static HUD.
     ///
     /// If the UI should be updated almost every frame due to animations or constant changes with data, favor setting `reactive_update` to true instead.
-    #[export]
-    fn refresh(&self, _owner: TRef<Control>) {
+    #[method]
+    fn refresh(&self) {
         self.egui_ctx.request_repaint();
     }
 

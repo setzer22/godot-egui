@@ -12,9 +12,9 @@ impl GodotEguiWindowExample {
     fn new(_: &Control) -> Self {
         Self { gui: None }
     }
-    #[export]
+    #[method]
     #[profiled]
-    pub fn _ready(&mut self, owner: TRef<Control>) {
+    pub fn _ready(&mut self, #[base] owner: TRef<Control>) {
         godot_print!("Initializing godot egui");
         let gui = owner
             .get_node("GodotEgui")
@@ -26,20 +26,20 @@ impl GodotEguiWindowExample {
     }
 
     /// Updates egui from the `_gui_input` callback
-    #[export]
+    #[method]
     #[profiled]
-    pub fn _gui_input(&mut self, owner: TRef<Control>, event: Ref<InputEvent>) {
+    pub fn _gui_input(&mut self, #[base] owner: TRef<Control>, event: Ref<InputEvent>) {
         let gui = unsafe { self.gui.as_ref().expect("GUI initialized").assume_safe() };
         gui.map_mut(|gui, instance| {
             gui.handle_godot_input(instance, event, true);
-            if gui.mouse_was_captured(instance) {
+            if gui.mouse_was_captured() {
                 owner.accept_event();
             }
         })
         .expect("map_mut should succeed");
     }
-    #[export]
-    fn _process(&mut self, _owner: TRef<Control>, _: f64) {
+    #[method]
+    fn _process(&mut self, _: f64) {
         if let Some(gui) = &self.gui {
             let gui = unsafe { gui.assume_safe() };
             gui.map_mut(|egui, o| {
